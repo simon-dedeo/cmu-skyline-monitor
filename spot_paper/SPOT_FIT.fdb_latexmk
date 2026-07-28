@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1785281330.61399 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785281331.46796 0
+["pdflatex"] 1785281655.5693 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785281656.34215 0
   "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785281329.62221 41709 81277a589d593a00d12c2f70d559eab1 ""
   "/opt/local/etc/texmf/texmf.cnf" 1781394635.23998 41383 e2d01f660d20f5e7c07ea7d1b7d1a538 ""
   "/opt/local/share/texmf-texlive/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1520408187 2900 1537cc8184ad1792082cd229ecc269f4 ""
@@ -208,15 +208,15 @@
   "/opt/local/share/texmf-texlive/tex/latex/xcolor/xcolor.sty" 1738800804 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "/opt/local/var/db/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781395727 5541357 bc9bda23ab9864778b6c0bfe4c64488b ""
   "/opt/local/var/db/texmf/web2c/pdftex/pdflatex.fmt" 1781394816 3637580 1d37c6ff43be158676db23520b4cde8e ""
-  "SPOT_FIT.aux" 1785281331.4136 11220 790b807fcd1f1e97c2b7bb56b00f2de1 "pdflatex"
-  "SPOT_FIT.out" 1785281331.4145 1936 a52808afde6e136d2b3597cb6db031d5 "pdflatex"
+  "SPOT_FIT.aux" 1785281656.29197 11220 790b807fcd1f1e97c2b7bb56b00f2de1 "pdflatex"
+  "SPOT_FIT.out" 1785281656.29282 1936 a52808afde6e136d2b3597cb6db031d5 "pdflatex"
   "SPOT_FIT.tex" 1785281329.62221 41709 81277a589d593a00d12c2f70d559eab1 ""
-  "SPOT_FIT.toc" 1785281331.41468 2073 00f6cbb462d04cd8397b7beac8a43ec5 "pdflatex"
+  "SPOT_FIT.toc" 1785281656.29297 2073 00f6cbb462d04cd8397b7beac8a43ec5 "pdflatex"
   "figs/after.png" 1785188290.37017 617309 355dd71df8781bd8153fc61208613fc2 ""
   "figs/before.png" 1785188290.36737 626977 922b9c5c96400de0d3adebe8e2d4a1e5 ""
-  "figs/diff.png" 1785281274 307402 c76f7d52d03936ca0dc8bcd48846cf05 ""
-  "figs/full_after.jpg" 1785281272 293503 a37e7d01059895acf05e3677d66bd348 ""
-  "figs/full_before.jpg" 1785281272 292444 deb422b6369ebbf1114dc50f488a970b ""
+  "figs/diff.png" 1785281652 307403 9b87d602f39a30a460446c30b30041d3 ""
+  "figs/full_after.jpg" 1785281650 293503 a37e7d01059895acf05e3677d66bd348 ""
+  "figs/full_before.jpg" 1785281650 292436 ccd628fb1550aa4e2e6e0969a4879a6f ""
   "figs/gain_error.pdf" 1785188291.12975 14704 e60b2d859cc2bc96d3c430ba4fb6b94c ""
   "figs/profile.pdf" 1785188291.09657 14769 c1b8380bc3eb7e91c2b3273c010bc844 ""
   "figs/tracks.pdf" 1785188291.06317 20050 f9cbb95c9d831756bee321530e468831 ""
