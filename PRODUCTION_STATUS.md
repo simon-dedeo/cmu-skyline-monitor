@@ -1,6 +1,6 @@
 # Production status — window-spot correction system
 
-Snapshot date: **2026-07-28** (post-review revision r1).
+Snapshot date: **2026-07-28** (post-review revision r2: frequency-split anti-inverse-spot cap + adaptive closed-loop gain solve in all three correction paths; the 1125 archive frames installed earlier on 07-28 were produced with the pixelwise cap and carry its quiet-disc signature -- safe, re-runnable on request).
 This table is the implementation-status ground truth for `spot_paper/SPOT_FIT.pdf`;
 the paper's claims should be read against it. `production/` contains byte-copies of the
 files as deployed on each host at the snapshot date; the live hosts remain

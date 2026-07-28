@@ -404,9 +404,15 @@ class Corrector:
                     continue
                 T = np.clip(1.0 - gain * peak * S, 0.55, 1.0)
                 Tf = 1.0 - feather * (1.0 - T)
-                # divide-only, and never brighter than the local sky: no inverse spot
-                o[:, :, ci] = np.clip(np.minimum(ch / np.maximum(Tf, 1e-6),
-                                                 np.maximum(bg, ch)), 0, 255)
+                # frequency-split cap: an inverse bright spot is a low-frequency object,
+                # so cap the smooth component at local sky and pass the grain through
+                # (the old pixelwise cap flattened the noise's upper tail -- visibly
+                # 'quiet' disc after enhancement)
+                raw = ch / np.maximum(Tf, 1e-6)
+                low = cv2.GaussianBlur(raw.astype(np.float32), (0, 0), 8).astype(np.float64)
+                lowo = cv2.GaussianBlur(ch.astype(np.float32), (0, 0), 8).astype(np.float64)
+                o[:, :, ci] = np.clip(np.minimum(low, np.maximum(bg, lowo))
+                                      + (raw - low), 0, 255)
             out.append(o.astype(np.uint8))
         return out
 
@@ -441,14 +447,27 @@ def clean_sky(f, cx, cy):
 
 
 def solve_gain(corr, imgs, enhance, cx, cy):
-    """Secant step on the FUSED dip. Linear-space gain cannot be right in general: CLAHE
-    amplifies the dip scene-dependently, so the loop must close where it is judged."""
-    d1 = fused_dip(fuse(corr.apply(imgs, G1), enhance), cx, cy)
-    d2 = fused_dip(fuse(corr.apply(imgs, G2), enhance), cx, cy)
-    if not (np.isfinite(d1) and np.isfinite(d2)) or abs(d1 - d2) < 1e-6:
-        return G1, d1, d2
-    g = G1 + (G2 - G1) * d1 / (d1 - d2)
-    return float(min(max(g, GAIN_CLAMP[0]), GAIN_CLAMP[1])), d1, d2
+    """Adaptive secant on the FUSED dip, one refinement. CLAHE amplifies the dip
+    scene-dependently, so the loop closes where it is judged; with the frequency-split
+    cap the response can be steep on bright ticks, so the second probe is chosen on the
+    other side of the root and the estimate is refined once."""
+    def d_at(g):
+        return fused_dip(fuse(corr.apply(imgs, g), enhance), cx, cy)
+    d1 = d_at(G1)
+    g2 = G2 if (np.isfinite(d1) and d1 > 0) else 0.4
+    d2 = d_at(g2)
+    def secant(ga, da, gb, db):
+        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 1e-6:
+            return ga
+        return ga + (gb - ga) * da / (da - db)
+    g = float(min(max(secant(G1, d1, g2, d2), GAIN_CLAMP[0]), GAIN_CLAMP[1]))
+    d3 = d_at(g)
+    pts = [(G1, d1), (g2, d2), (g, d3)]
+    pts = sorted([p_ for p_ in pts if np.isfinite(p_[1])], key=lambda t: abs(t[1]))
+    if len(pts) >= 2 and abs(pts[0][1]) > 0.25:
+        g = float(min(max(secant(pts[0][0], pts[0][1], pts[1][0], pts[1][1]),
+                          GAIN_CLAMP[0]), GAIN_CLAMP[1]))
+    return g, d1, d2
 
 
 # ----------------------------------------------------------------- acceptance

@@ -268,7 +268,14 @@ def _correct(img):
                 Tc = np.clip(1.0 - Dref * scale * amp_adj, 0.5, 1.05)
                 gain = 1.0 / np.clip(Tc, 0.7, 1.0)              # divide out transmittance at this exposure
                 corrected = lin * gain
-                corrected = np.minimum(corrected, np.maximum(B2, lin))   # never exceed local sky
+                # FREQUENCY-SPLIT cap (2026-07-28): cap only the SMOOTH component at the
+                # local sky fit and pass the grain through. The old pixelwise cap clipped
+                # the upper half of the noise onto the noiseless quadratic, leaving an
+                # unnaturally quiet disc; an inverse bright spot is a low-frequency
+                # object, so clipping blob-scale structure is the whole guarantee.
+                lowc = cv2.GaussianBlur(corrected.astype(np.float32), (0, 0), 8).astype(np.float64)
+                lowl = cv2.GaussianBlur(lin.astype(np.float32), (0, 0), 8).astype(np.float64)
+                corrected = np.minimum(lowc, np.maximum(B2, lowl)) + (corrected - lowc)
                 win[:, :, c] = _lin_srgb(lin * (1.0 - foot) + corrected * foot)
             return np.clip(out, 0, 255).astype(np.uint8)
     # (a stale model falls through to the ring-fit fallback below)

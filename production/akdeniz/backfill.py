@@ -194,8 +194,12 @@ def _work(item):
                 ch = imgs[bi][:, :, ci].astype(np.float64)
                 T = np.clip(1.0 - g * peak * S, 0.55, 1.0)
                 Tf = 1.0 - feather * (1.0 - T)
-                o[:, :, ci] = np.clip(np.minimum(ch / np.maximum(Tf, 1e-6),
-                                                 np.maximum(bgs[key], ch)), 0, 255)
+                raw = ch / np.maximum(Tf, 1e-6)
+                # frequency-split cap: clip blob-scale structure at local sky, pass grain
+                low = cv2.GaussianBlur(raw.astype(np.float32), (0, 0), 8).astype(np.float64)
+                lowo = cv2.GaussianBlur(ch.astype(np.float32), (0, 0), 8).astype(np.float64)
+                o[:, :, ci] = np.clip(np.minimum(low, np.maximum(bgs[key], lowo))
+                                      + (raw - low), 0, 255)
             out.append(o.astype(np.uint8))
         return out
 
@@ -213,13 +217,29 @@ def _work(item):
     d0 = fdip(fb)
     if not np.isfinite(d0):
         return dict(stem=stem, note="night")
+    # Adaptive closed loop (2026-07-28): with the frequency-split cap the response d(g)
+    # can be steep and saturating on bright ticks, so fixed probes at (1.0, 2.2) may sit
+    # on one side of the root and extrapolate into the clamp. Probe at 1.0, choose the
+    # second probe on the other side of the root, secant, then refine once.
+    pts = []
     d1 = fdip(fuse(corrected(G1)))
-    d2 = fdip(fuse(corrected(G2)))
-    if np.isfinite(d1) and np.isfinite(d2) and abs(d1 - d2) > 1e-6:
-        gstar = G1 + (G2 - G1) * d1 / (d1 - d2)
-    else:
-        gstar = G1
-    gstar = float(min(max(gstar, GCLAMP[0]), GCLAMP[1]))
+    pts.append((G1, d1))
+    g2 = G2 if (np.isfinite(d1) and d1 > 0) else 0.4
+    d2 = fdip(fuse(corrected(g2)))
+    pts.append((g2, d2))
+    def secant(a, b):
+        (ga, da), (gb, db) = a, b
+        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 1e-6:
+            return ga
+        return ga + (gb - ga) * da / (da - db)
+    gstar = float(min(max(secant(pts[0], pts[1]), GCLAMP[0]), GCLAMP[1]))
+    d3 = fdip(fuse(corrected(gstar)))
+    pts.append((gstar, d3))
+    # one refinement: secant on the two points nearest the root
+    pts_f = [p_ for p_ in pts if np.isfinite(p_[1])]
+    pts_f.sort(key=lambda t: abs(t[1]))
+    if len(pts_f) >= 2 and abs(pts_f[0][1]) > 0.25:
+        gstar = float(min(max(secant(pts_f[0], pts_f[1]), GCLAMP[0]), GCLAMP[1]))
     fc = fuse(corrected(gstar))
     dfin = fdip(fc)
     if np.isfinite(dfin) and d0 > 1.0 and abs(dfin) > abs(d0) + 0.3:
