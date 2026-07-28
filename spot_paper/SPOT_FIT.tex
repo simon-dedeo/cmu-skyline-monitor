@@ -23,7 +23,7 @@
 
 \title{\bfseries Tracking and Removing a Migrating Window Blemish}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v6.5)}
+\date{2026-07-28 (v7)}
 
 \begin{document}
 \maketitle
@@ -52,8 +52,8 @@ displayed artifact falls from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-bloc
   \captionof{figure}{The same three raw brackets fused without (left) and with (right)
   the correction --- 2026-07-25 19:17 EDT. The blemish is the dark smudge at the top of
   the sky, left of centre; displayed dip \SI{5.46}{\percent} $\rightarrow$
-  \SI{0.77}{\percent}. The corrected fusion is the frame now served in the public
-  archive.}
+  \SI{-0.2}{\percent} (nulled to within measurement noise). The corrected fusion is
+  the production chain's output.}
   \label{fig:full}
 \end{center}
 
@@ -306,8 +306,8 @@ inverse bright spot structurally impossible.
 \subsection{Offline reprocessing: closed-loop gain}
 
 For archive reprocessing, where four fusions per tick are affordable, the gain is solved
-in \emph{display} space: fuse at two probe gains, take the secant step to the gain that
-nulls the \emph{fused} dip, fuse once more. This removes all dependence on the
+in \emph{display} space: fuse at adaptive probe gains bracketing the root, secant-step
+to the gain that nulls the \emph{fused} dip, and refine once. This removes all dependence on the
 scene-dependent enhancement amplification (Figure~\ref{fig:gain}); the fitted gains
 (median \num{2.83}) independently recover the measured $\approx\!2.85\times$ CLAHE
 amplification.
@@ -515,9 +515,11 @@ carry-forward, gate rejections, and recovery exactly as a live outage would.
     \includegraphics[width=\textwidth]{figs/diff.png}\caption{difference, $6\times$}
   \end{subfigure}
   \caption{Pixel-scale detail of Figure~\ref{fig:full} --- the same three raw brackets
-  through the same production chain (registered map, template lock, closed-loop gain):
-  \SI{5.46}{\percent} $\rightarrow$ \SI{0.77}{\percent}. The difference (right,
-  $6\times$) is a single compact blob; nothing outside the footprint is touched.}
+  through the same production chain (registered map, template lock, adaptive
+  closed-loop gain, frequency-split cap):
+  \SI{5.46}{\percent} $\rightarrow$ \SI{-0.2}{\percent}. The difference (right,
+  $6\times$) is a single compact blob; nothing outside the footprint is touched, and
+  the noise texture inside it is preserved.}
   \label{fig:ba}
 \end{figure}
 
