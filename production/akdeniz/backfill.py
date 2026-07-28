@@ -21,7 +21,7 @@ OUT = os.path.expanduser("~/corrected")
 LISTING = os.path.expanduser("~/archive_listing.txt")
 R_FP, R0, R1, TOP_MASK = 90, 110, 170, 20
 G1, G2 = 1.0, 2.2
-GCLAMP = (0.2, 6.0)
+GCLAMP = (0.4, 1.8)   # model-referenced bound: <=1.8x characterized deficit
 JPEG_Q = 92
 os.makedirs(OUT, exist_ok=True)
 GEOM = json.load(open(f"{MAPS}/geom.json"))
@@ -194,12 +194,14 @@ def _work(item):
                 ch = imgs[bi][:, :, ci].astype(np.float64)
                 T = np.clip(1.0 - g * peak * S, 0.55, 1.0)
                 Tf = 1.0 - feather * (1.0 - T)
-                raw = ch / np.maximum(Tf, 1e-6)
-                # frequency-split cap: clip blob-scale structure at local sky, pass grain
-                low = cv2.GaussianBlur(raw.astype(np.float32), (0, 0), 8).astype(np.float64)
-                lowo = cv2.GaussianBlur(ch.astype(np.float32), (0, 0), 8).astype(np.float64)
-                o[:, :, ci] = np.clip(np.minimum(low, np.maximum(bgs[key], lowo))
-                                      + (raw - low), 0, 255)
+                # NO scene-referenced cap (2026-07-28, Simon's design call): a cap
+                # referenced to the observed scene eats the correction wherever a bright
+                # cloud sits behind the blemish (the dimmed cloud IS the reference).
+                # Safety is model-referenced instead: the correction shape is the QC'd
+                # map and the closed-loop gain is clamped to (0.4, 1.8) -- the correction
+                # can never exceed 1.8x the characterized deficit, scene or no scene.
+                # Nothing touches the grain at any frequency.
+                o[:, :, ci] = np.clip(ch / np.maximum(Tf, 1e-6), 0, 255)
             out.append(o.astype(np.uint8))
         return out
 
@@ -229,8 +231,8 @@ def _work(item):
     pts.append((g2, d2))
     def secant(a, b):
         (ga, da), (gb, db) = a, b
-        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 1e-6:
-            return ga
+        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 0.15:
+            return ga if abs(da) <= abs(db) else gb   # flat response: don't extrapolate
         return ga + (gb - ga) * da / (da - db)
     gstar = float(min(max(secant(pts[0], pts[1]), GCLAMP[0]), GCLAMP[1]))
     d3 = fdip(fuse(corrected(gstar)))

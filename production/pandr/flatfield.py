@@ -245,7 +245,7 @@ def _correct(img):
                     L = float(np.median(win[:, :, c][ring]))    # this bracket's local level (0-255)
                     s_L = float(np.interp(L, sc["level_knots"], sc["s"][chn[c]]))
                     s_ref = sc.get("s_ref", {}).get(chn[c]) or s_L
-                    scale = min(max(s_L / max(s_ref, 1e-3), 0.3), 4.0)
+                    scale = min(max(s_L / max(s_ref, 1e-3), 0.3), 2.5)
                 # --- per-tick AMPLITUDE self-cal (gated) + local-sky quadratic for the cap.
                 #     The scurve is open-loop; on dark backgrounds the true dip runs deeper
                 #     than map*scurve. When the ring is clean enough to trust, measure this
@@ -265,18 +265,16 @@ def _correct(img):
                     meas = 1.0 - float(np.median(lin[core])) / max(float(np.median(B2[core])), 1e-6)
                     if 0.004 <= meas <= 0.22:
                         amp_adj = min(max(meas / model_core, 0.75), 1.35)
-                Tc = np.clip(1.0 - Dref * scale * amp_adj, 0.5, 1.05)
-                gain = 1.0 / np.clip(Tc, 0.7, 1.0)              # divide out transmittance at this exposure
-                corrected = lin * gain
-                # FREQUENCY-SPLIT cap (2026-07-28): cap only the SMOOTH component at the
-                # local sky fit and pass the grain through. The old pixelwise cap clipped
-                # the upper half of the noise onto the noiseless quadratic, leaving an
-                # unnaturally quiet disc; an inverse bright spot is a low-frequency
-                # object, so clipping blob-scale structure is the whole guarantee.
-                lowc = cv2.GaussianBlur(corrected.astype(np.float32), (0, 0), 8).astype(np.float64)
-                lowl = cv2.GaussianBlur(lin.astype(np.float32), (0, 0), 8).astype(np.float64)
-                corrected = np.minimum(lowc, np.maximum(B2, lowl)) + (corrected - lowc)
-                win[:, :, c] = _lin_srgb(lin * (1.0 - foot) + corrected * foot)
+                # NO scene-referenced cap (2026-07-28): it eats the correction wherever
+                # a bright cloud sits behind the blemish (the dimmed cloud is the
+                # reference). Safety is MODEL-referenced: amplitude self-cal is clamped
+                # [0.75, 1.35]x model and gated on ring cleanliness; the scurve scale is
+                # clamped <= 2.5 (legitimate dark-bracket maximum ~1.75); and the total
+                # applied deficit is floored at Tc >= 0.85 (max brightening 18%, vs a
+                # legitimate maximum ~11%). Grain untouched at all frequencies.
+                Tc = np.clip(1.0 - Dref * scale * amp_adj, 0.85, 1.05)
+                gain = 1.0 / np.clip(Tc, 0.85, 1.0)             # divide out transmittance
+                win[:, :, c] = _lin_srgb(lin * (1.0 - foot) + (lin * gain) * foot)
             return np.clip(out, 0, 255).astype(np.uint8)
     # (a stale model falls through to the ring-fit fallback below)
 

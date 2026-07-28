@@ -23,7 +23,7 @@
 
 \title{\bfseries Tracking and Removing a Migrating Window Blemish}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v7)}
+\date{2026-07-28 (v8)}
 
 \begin{document}
 \maketitle
@@ -52,7 +52,7 @@ displayed artifact falls from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-bloc
   \captionof{figure}{The same three raw brackets fused without (left) and with (right)
   the correction --- 2026-07-25 19:17 EDT. The blemish is the dark smudge at the top of
   the sky, left of centre; displayed dip \SI{5.46}{\percent} $\rightarrow$
-  \SI{-0.2}{\percent} (nulled to within measurement noise). The corrected fusion is
+  \SI{-0.5}{\percent} (nulled to within measurement noise). The corrected fusion is
   the production chain's output.}
   \label{fig:full}
 \end{center}
@@ -299,9 +299,19 @@ The map records depth at the reference exposure. Two mechanisms adapt it per fra
 \end{itemize}
 
 The correction itself divides rather than reconstructs: $I \mapsto I/\tilde T$ with
-$\tilde T$ feathered to unity outside the footprint, gain capped, and every corrected
-pixel clamped never to exceed the local sky fit. Divide-only plus the cap makes an
-inverse bright spot structurally impossible.
+$\tilde T$ feathered to unity outside the footprint. There is deliberately \emph{no
+scene-referenced cap}: a clamp referenced to the observed image or a local sky fit eats
+the correction exactly where a bright cloud passes behind the blemish (the dimmed cloud
+becomes the reference), and an earlier pixelwise version also silently deleted the upper
+half of the noise distribution, leaving an unnaturally smooth disc. Safety is instead
+\emph{model-referenced}: the correction's shape is the quality-gated empirical map, and
+its amplitude is bounded relative to the characterized deficit --- the closed-loop gain
+is clamped to $[0.4, 1.8]$, the live amplitude trim to $[0.75, 1.35]\times$ the model
+with the exposure scale capped at $2.5$, and the total applied deficit floored at
+$T \ge 0.85$. The correction can therefore never exceed a fixed multiple of what the
+blemish could physically account for, whatever the scene does; clouds neither evade the
+bound nor get eaten by it, and the noise texture passes through untouched at every
+frequency.
 
 \subsection{Offline reprocessing: closed-loop gain}
 
@@ -428,7 +438,7 @@ quality regression when the nightly service resumes.
                                     frame dip $\times$ map template, $\pm$25 px};
 \node[hot,  below=of lock]  (amp)  {\textbf{amplitude}: scurve $\times$\\
                                     gated self-calibration};
-\node[hot,  below=of amp]   (div)  {divide $/\tilde T$, feather,\\local-sky cap};
+\node[hot,  below=of amp]   (div)  {divide $/\tilde T$, feather,\\model-bounded gain};
 \node[box,  below=of div]   (fuse) {Mertens fuse $+$ enhance};
 \node[box,  below=of fuse]  (serve){serve $+$ archive JPEG};
 \node[store, below=of serve] (raw) {raw brackets, refs,\\drift.csv (never corrected)};
@@ -516,8 +526,8 @@ carry-forward, gate rejections, and recovery exactly as a live outage would.
   \end{subfigure}
   \caption{Pixel-scale detail of Figure~\ref{fig:full} --- the same three raw brackets
   through the same production chain (registered map, template lock, adaptive
-  closed-loop gain, frequency-split cap):
-  \SI{5.46}{\percent} $\rightarrow$ \SI{-0.2}{\percent}. The difference (right,
+  closed-loop gain, model-referenced amplitude bounds):
+  \SI{5.46}{\percent} $\rightarrow$ \SI{-0.5}{\percent}. The difference (right,
   $6\times$) is a single compact blob; nothing outside the footprint is touched, and
   the noise texture inside it is preserved.}
   \label{fig:ba}

@@ -88,7 +88,7 @@ MAX_BRACKET_SPREAD = 18.0  # per-bracket centroid disagreement that means "low c
 
 # ---- gain, closed in display space
 G1, G2 = 1.0, 2.2
-GAIN_CLAMP = (0.2, 6.0)
+GAIN_CLAMP = (0.4, 1.8)   # model-referenced bound: <=1.8x characterized deficit
 
 # ---- acceptance gate (env-overridable so a replay can be run cheaply, and so
 #      thresholds can be retuned without editing code in production)
@@ -404,15 +404,10 @@ class Corrector:
                     continue
                 T = np.clip(1.0 - gain * peak * S, 0.55, 1.0)
                 Tf = 1.0 - feather * (1.0 - T)
-                # frequency-split cap: an inverse bright spot is a low-frequency object,
-                # so cap the smooth component at local sky and pass the grain through
-                # (the old pixelwise cap flattened the noise's upper tail -- visibly
-                # 'quiet' disc after enhancement)
-                raw = ch / np.maximum(Tf, 1e-6)
-                low = cv2.GaussianBlur(raw.astype(np.float32), (0, 0), 8).astype(np.float64)
-                lowo = cv2.GaussianBlur(ch.astype(np.float32), (0, 0), 8).astype(np.float64)
-                o[:, :, ci] = np.clip(np.minimum(low, np.maximum(bg, lowo))
-                                      + (raw - low), 0, 255)
+                # No scene-referenced cap: it eats the correction wherever a bright
+                # cloud sits behind the blemish. Safety is model-referenced -- QC'd map
+                # shape x gain clamped to (0.4, 1.8). Grain untouched at all frequencies.
+                o[:, :, ci] = np.clip(ch / np.maximum(Tf, 1e-6), 0, 255)
             out.append(o.astype(np.uint8))
         return out
 
@@ -457,8 +452,8 @@ def solve_gain(corr, imgs, enhance, cx, cy):
     g2 = G2 if (np.isfinite(d1) and d1 > 0) else 0.4
     d2 = d_at(g2)
     def secant(ga, da, gb, db):
-        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 1e-6:
-            return ga
+        if not (np.isfinite(da) and np.isfinite(db)) or abs(da - db) < 0.15:
+            return ga if abs(da) <= abs(db) else gb   # flat response: don't extrapolate
         return ga + (gb - ga) * da / (da - db)
     g = float(min(max(secant(G1, d1, g2, d2), GAIN_CLAMP[0]), GAIN_CLAMP[1]))
     d3 = d_at(g)
