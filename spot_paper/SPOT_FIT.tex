@@ -24,7 +24,7 @@
 \title{\bfseries Tracking and Removing a Migrating Window Blemish\\
        in a Time-Lapse Sky Monitor}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v6)}
+\date{2026-07-28 (v6.1)}
 
 \begin{document}
 \maketitle
@@ -502,12 +502,14 @@ carry-forward, gate rejections, and recovery exactly as a live outage would.
   \centering
   \includegraphics[width=\textwidth]{figs/full_before.jpg}\\[2pt]
   \includegraphics[width=\textwidth]{figs/full_after.jpg}
-  \caption{The full served frame, before (top) and after (bottom) correction ---
-  2026-07-25 19:15 EDT, reprocessed through the production chain (the ``after'' is the
-  frame now installed in the public archive). The blemish is the dark smudge in the sky
-  left of centre in the top image; everything else, including the faint cloud structure
-  and the crane at far left, is untouched. Figure~\ref{fig:ba} shows the same
-  correction at pixel scale.}
+  \caption{The full frame, before (top) and after (bottom) correction. Both images are
+  fused from the \emph{same three raw brackets} (2026-07-25 19:17:28 EDT): the top is
+  the uncorrected fusion, the bottom the corrected one produced by the archive
+  reprocessing --- and now installed as the served frame in the public archive. The
+  blemish is the dark smudge at the top of the sky, left of centre; everything else,
+  including the cloud haze at left and the crane, is pixel-identical scene. Measured
+  displayed dip: \SI{5.46}{\percent} $\rightarrow$ \SI{0.77}{\percent}.
+  Figure~\ref{fig:ba} shows the correction at pixel scale.}
   \label{fig:full}
 \end{figure}
 
