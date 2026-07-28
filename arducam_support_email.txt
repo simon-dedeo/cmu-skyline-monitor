@@ -1,0 +1,40 @@
+To: support@arducam.com
+Subject: B0578 (2.3MP GS, 0c45:0578) — streaming-endpoint lockup requiring power-cycle; firmware update request
+
+Hello,
+
+I run an Arducam B0578 (2.3MP OG02B10 global-shutter USB 2.0 UVC module,
+VID 0x0c45 / PID 0x0578, bcdDevice 1.00, serial "SN001") as a fixed skyline
+monitoring camera on macOS 11.7 (2015 MacBook Pro), capturing via
+OpenCV/AVFoundation with manual UVC exposure control.
+
+Symptom: after extended unattended operation (heaviest during dawn, when we
+capture 5-frame exposure brackets with stream open/close cycles roughly every
+1-2.5 minutes), the camera's streaming endpoint locks up:
+
+- Control transfers keep working (the device still enumerates and answers
+  GetDevicesState), but no video frames are ever delivered again.
+- macOS's camera daemon logs "StartStream SetPipePolicy returned 0xe00002c2"
+  (kIOReturnBadArgument) on every stream start, and its stop-stats show
+  "TransactionCountFromUSB: 5656, FrameCountDispatched: 0, FrameCompleted: 0".
+- Just before the full lockup the camera delivered torn frames (rows from
+  different exposures interleaved in one frame).
+- A USB bus-level reset (libusb resetDevice; device re-enumerates at a new
+  address) does NOT clear it. Only physically unplugging/replugging the
+  camera (removing VBUS power) recovers it.
+
+This matches forum reports for the sibling B0574 ("stops streaming frames
+after some time"). Questions:
+
+1. Is there updated firmware for the B0578 that addresses streaming lockups
+   under frequent stream restarts / exposure-control writes? Could you send
+   the firmware file and the burning tool, plus instructions?
+2. Is the burning tool Windows-only, or is there a Linux or macOS option?
+3. Is there a recommended way to read the current firmware version so I can
+   confirm before/after?
+4. Any operational guidance to avoid the lockup (limits on stream open/close
+   frequency, exposure-write rate, powered-hub recommendation)?
+
+Thank you!
+Simon DeDeo
+sdedeo@andrew.cmu.edu

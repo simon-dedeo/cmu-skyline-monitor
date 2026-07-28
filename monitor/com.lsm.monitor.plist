@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.monitor</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/laboratoryforsocialminds/monitor/tick.sh</string>
+    </array>
+
+    <!-- Fire every 5 minutes (capture+archive to disk). Uploads to the web
+         server are throttled to ~15 min inside capture.sh. RunAtLoad kicks
+         one off immediately on login. -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- NOT KeepAlive: this is a short one-shot per tick, not a daemon.
+         (The old broken job used KeepAlive+missing-script => retry storm.) -->
+
+    <key>WorkingDirectory</key>
+    <string>/Users/laboratoryforsocialminds/monitor</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

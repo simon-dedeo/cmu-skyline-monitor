@@ -1,0 +1,238 @@
+<title>Spot position fit — visual check</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg:#faf8f5; --card:#fff; --ink:#141312; --dim:#5d5954; --line:#e4ddd2;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --warn:#b45309;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:#111010; --card:#1b1a19; --ink:#f2ede6; --dim:#a09a91; --line:#302c27;
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70; --warn:#fab219;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#111010; --card:#1b1a19; --ink:#f2ede6; --dim:#a09a91; --line:#302c27;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --warn:#fab219;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:30px 22px 70px; }
+  h1 { font-size:25px; margin:0 0 6px; letter-spacing:-.01em; }
+  .lede { color:var(--dim); max-width:76ch; }
+  .verdict { margin:20px 0 26px; padding:14px 16px; background:var(--card);
+    border:1px solid var(--line); border-left:3px solid var(--s2); border-radius:6px; }
+  .verdict p { margin:0 0 8px; } .verdict p:last-child { margin:0; }
+  h2 { font-size:17px; margin:34px 0 12px; padding-bottom:7px; border-bottom:1px solid var(--line); }
+
+  .legend { display:flex; flex-wrap:wrap; gap:16px; margin:0 0 18px; font-size:13px;
+    color:var(--dim); align-items:center; }
+  .legend .k { display:inline-flex; align-items:center; gap:7px; }
+  .glyph { width:16px; height:16px; flex:0 0 16px; }
+
+  .day { background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:14px 16px; margin-bottom:16px; }
+  .dayhead { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:baseline; }
+  .dayhead h3 { margin:0; font-size:16px; font-variant-numeric:tabular-nums; }
+  .dayhead dl { display:flex; flex-wrap:wrap; gap:4px 16px; margin:0; font-size:12.5px; }
+  .dayhead dl div { display:flex; gap:5px; }
+  .dayhead dt { color:var(--dim); }
+  .dayhead dd { margin:0; font-variant-numeric:tabular-nums; }
+  .flag { font-size:12px; color:var(--warn); }
+  .panels { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:10px; margin-top:12px; }
+  .pan { margin:0; }
+  /* panels are baked with a light neutral midpoint, so they keep a light backing
+     in both themes -- flipping it would misrepresent "zero" */
+  .pan img { display:block; width:100%; height:auto; border-radius:4px;
+    background:#f0efec; border:1px solid var(--line); }
+  .pan figcaption { font-size:11.5px; color:var(--dim); margin-top:4px; text-align:center; }
+
+  .charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:16px; }
+  .chart { margin:0; background:var(--card); border:1px solid var(--line);
+    border-radius:8px; padding:12px 14px 4px; overflow-x:auto; }
+  .chart figcaption { font-size:13.5px; margin-bottom:6px; }
+  .grid { stroke:var(--line); stroke-width:1; }
+  .tick { font-size:10.5px; fill:var(--dim); }
+  .tr { text-anchor:end; } .tc { text-anchor:middle; }
+  .ylab { font-size:10.5px; fill:var(--dim); }
+  .ln { fill:none; stroke-width:2; }
+  .mk { stroke:var(--card); stroke-width:1.5; }
+  .xk { fill:none; stroke-width:2.5; }
+  .dlab { font-size:11.5px; }
+  .s1 { stroke:var(--s1); } .mk.s1 { fill:var(--s1); } text.s1 { fill:var(--s1); stroke:none; }
+  .s2 { stroke:var(--s2); } .mk.s2 { fill:var(--s2); } text.s2 { fill:var(--s2); stroke:none; }
+  .s3 { stroke:var(--s3); } .mk.s3 { fill:none; } text.s3 { fill:var(--s3); stroke:none; }
+  .xk.s3 { stroke:var(--s3); }
+
+  table { border-collapse:collapse; width:100%; font-size:13px; margin-top:6px;
+    font-variant-numeric:tabular-nums; }
+  caption { text-align:left; font-size:13px; color:var(--dim); padding-bottom:6px; }
+  th, td { padding:5px 9px; border-bottom:1px solid var(--line); text-align:right; }
+  thead th { color:var(--dim); font-weight:500; }
+  tbody th { text-align:left; font-weight:500; }
+  .grp { border-left:1px solid var(--line); }
+</style>
+<div class="wrap">
+<h1>Spot position fit &mdash; visual check</h1>
+<p class="lede">MAP fit of the window blemish, one centre per day tied across days by a
+drift-informed random walk, shared width, depth free per day. Shape came out
+<strong>&sigma; = 32.08 px &rarr; r<sub>half</sub> = 37.8 px</strong>,
+against the refiner's independently measured r = 38.2 px.</p>
+
+<div class="verdict">
+  <p><strong>It is working &mdash; and it overturns what I told you earlier.</strong>
+  I said the MAP position disagreed with the refiner by 57&nbsp;px and so shouldn't be
+  trusted. The panels show the opposite: the MAP circle sits on the dip, while the
+  refiner cross and the drift prediction sit clearly <em>off</em> it.</p>
+  <p>On 2026-07-20, with drift &asymp; 0, the MAP circle and the drift prediction
+  coincide exactly on the blob centre &mdash; the method validates at baseline. On later
+  days they separate, and the dip is where MAP says it is.</p>
+  <p>Two consequences. The refiner lags by construction: it averages a 7-day window, so
+  under monotonic drift it reports a stale position. And the blemish really does move
+  faster than the scene &mdash; consistent with parallax, since it sits centimetres from
+  the lens while the buildings are at infinity. That means <strong>tracking the aperture
+  off <code>drift.csv</code> would still under-correct</strong>; it has to track the
+  blemish itself.</p>
+</div>
+
+<h2>Estimator tracks</h2>
+<div class="legend">
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="var(--s1)"/></svg> Drift prediction</span>
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="var(--s2)"/></svg> MAP fit</span>
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><path d="M4,4L12,12M4,12L12,4" stroke="var(--s3)" stroke-width="2.5" fill="none"/></svg> Refiner (7-day window)</span>
+</div>
+<div class="charts">
+  <figure class="chart"><figcaption>Spot centre — x</figcaption><svg viewBox="0 0 620 230" width="100%" role="img" aria-label="Spot centre — x"><line x1="46" y1="196.0" x2="512" y2="196.0" class="grid"/><text x="38" y="200.0" class="tick tr">1169</text><line x1="46" y1="150.5" x2="512" y2="150.5" class="grid"/><text x="38" y="154.5" class="tick tr">1205</text><line x1="46" y1="105.0" x2="512" y2="105.0" class="grid"/><text x="38" y="109.0" class="tick tr">1240</text><line x1="46" y1="59.5" x2="512" y2="59.5" class="grid"/><text x="38" y="63.5" class="tick tr">1276</text><line x1="46" y1="14.0" x2="512" y2="14.0" class="grid"/><text x="38" y="18.0" class="tick tr">1311</text><text x="46.0" y="218" class="tick tc">07-20</text><text x="112.6" y="218" class="tick tc">07-21</text><text x="179.1" y="218" class="tick tc">07-22</text><text x="245.7" y="218" class="tick tc">07-23</text><text x="312.3" y="218" class="tick tc">07-24</text><text x="378.9" y="218" class="tick tc">07-25</text><text x="445.4" y="218" class="tick tc">07-26</text><text x="512.0" y="218" class="tick tc">07-27</text><path d="M46.0,178.3 L112.6,177.0 L179.1,171.9 L245.7,142.4 L312.3,133.5 L378.9,125.8 L445.4,120.7 L512.0,116.8" class="ln s1"/><rect x="42.0" y="174.3" width="8" height="8" class="mk s1"/><rect x="108.6" y="173.0" width="8" height="8" class="mk s1"/><rect x="175.1" y="167.9" width="8" height="8" class="mk s1"/><rect x="241.7" y="138.4" width="8" height="8" class="mk s1"/><rect x="308.3" y="129.5" width="8" height="8" class="mk s1"/><rect x="374.9" y="121.8" width="8" height="8" class="mk s1"/><rect x="441.4" y="116.7" width="8" height="8" class="mk s1"/><rect x="508.0" y="112.8" width="8" height="8" class="mk s1"/><text x="522.0" y="120.8" class="dlab s1">Drift prediction</text><path d="M46.0,178.4 L112.6,166.5 L179.1,138.7 L245.7,96.1 L312.3,67.3 L378.9,49.8 L445.4,42.2 L512.0,31.6" class="ln s2"/><circle cx="46.0" cy="178.4" r="4.5" class="mk s2"/><circle cx="112.6" cy="166.5" r="4.5" class="mk s2"/><circle cx="179.1" cy="138.7" r="4.5" class="mk s2"/><circle cx="245.7" cy="96.1" r="4.5" class="mk s2"/><circle cx="312.3" cy="67.3" r="4.5" class="mk s2"/><circle cx="378.9" cy="49.8" r="4.5" class="mk s2"/><circle cx="445.4" cy="42.2" r="4.5" class="mk s2"/><circle cx="512.0" cy="31.6" r="4.5" class="mk s2"/><text x="522.0" y="35.6" class="dlab s2">MAP fit</text><path d="M112.6,166.7 L179.1,156.5 L245.7,156.5 L312.3,118.1 L378.9,118.1 L445.4,104.0" class="ln s3"/><path d="M108.6,162.7L116.6,170.7M108.6,170.7L116.6,162.7" class="mk xk s3"/><path d="M175.1,152.5L183.1,160.5M175.1,160.5L183.1,152.5" class="mk xk s3"/><path d="M241.7,152.5L249.7,160.5M241.7,160.5L249.7,152.5" class="mk xk s3"/><path d="M308.3,114.1L316.3,122.1M308.3,122.1L316.3,114.1" class="mk xk s3"/><path d="M374.9,114.1L382.9,122.1M374.9,122.1L382.9,114.1" class="mk xk s3"/><path d="M441.4,100.0L449.4,108.0M441.4,108.0L449.4,100.0" class="mk xk s3"/><text x="455.4" y="108.0" class="dlab s3">Refiner (7-day)</text><text x="46" y="12" class="ylab">px</text></svg></figure>
+  <figure class="chart"><figcaption>Spot centre — y</figcaption><svg viewBox="0 0 620 230" width="100%" role="img" aria-label="Spot centre — y"><line x1="46" y1="196.0" x2="512" y2="196.0" class="grid"/><text x="38" y="200.0" class="tick tr">127</text><line x1="46" y1="150.5" x2="512" y2="150.5" class="grid"/><text x="38" y="154.5" class="tick tr">142</text><line x1="46" y1="105.0" x2="512" y2="105.0" class="grid"/><text x="38" y="109.0" class="tick tr">156</text><line x1="46" y1="59.5" x2="512" y2="59.5" class="grid"/><text x="38" y="63.5" class="tick tr">171</text><line x1="46" y1="14.0" x2="512" y2="14.0" class="grid"/><text x="38" y="18.0" class="tick tr">186</text><text x="46.0" y="218" class="tick tc">07-20</text><text x="112.6" y="218" class="tick tc">07-21</text><text x="179.1" y="218" class="tick tc">07-22</text><text x="245.7" y="218" class="tick tc">07-23</text><text x="312.3" y="218" class="tick tc">07-24</text><text x="378.9" y="218" class="tick tc">07-25</text><text x="445.4" y="218" class="tick tc">07-26</text><text x="512.0" y="218" class="tick tc">07-27</text><path d="M46.0,59.6 L112.6,44.1 L179.1,50.3 L245.7,93.8 L312.3,106.2 L378.9,109.4 L445.4,112.5 L512.0,103.1" class="ln s1"/><rect x="42.0" y="55.6" width="8" height="8" class="mk s1"/><rect x="108.6" y="40.1" width="8" height="8" class="mk s1"/><rect x="175.1" y="46.3" width="8" height="8" class="mk s1"/><rect x="241.7" y="89.8" width="8" height="8" class="mk s1"/><rect x="308.3" y="102.2" width="8" height="8" class="mk s1"/><rect x="374.9" y="105.4" width="8" height="8" class="mk s1"/><rect x="441.4" y="108.5" width="8" height="8" class="mk s1"/><rect x="508.0" y="99.1" width="8" height="8" class="mk s1"/><text x="522.0" y="107.1" class="dlab s1">Drift prediction</text><path d="M46.0,58.0 L112.6,89.8 L179.1,87.6 L245.7,131.1 L312.3,142.0 L378.9,158.8 L445.4,176.8 L512.0,178.4" class="ln s2"/><circle cx="46.0" cy="58.0" r="4.5" class="mk s2"/><circle cx="112.6" cy="89.8" r="4.5" class="mk s2"/><circle cx="179.1" cy="87.6" r="4.5" class="mk s2"/><circle cx="245.7" cy="131.1" r="4.5" class="mk s2"/><circle cx="312.3" cy="142.0" r="4.5" class="mk s2"/><circle cx="378.9" cy="158.8" r="4.5" class="mk s2"/><circle cx="445.4" cy="176.8" r="4.5" class="mk s2"/><circle cx="512.0" cy="178.4" r="4.5" class="mk s2"/><text x="522.0" y="182.4" class="dlab s2">MAP fit</text><path d="M112.6,31.6 L179.1,44.1 L245.7,44.1 L312.3,115.6 L378.9,115.6 L445.4,121.8" class="ln s3"/><path d="M108.6,27.6L116.6,35.6M108.6,35.6L116.6,27.6" class="mk xk s3"/><path d="M175.1,40.1L183.1,48.1M175.1,48.1L183.1,40.1" class="mk xk s3"/><path d="M241.7,40.1L249.7,48.1M241.7,48.1L249.7,40.1" class="mk xk s3"/><path d="M308.3,111.6L316.3,119.6M308.3,119.6L316.3,111.6" class="mk xk s3"/><path d="M374.9,111.6L382.9,119.6M374.9,119.6L382.9,111.6" class="mk xk s3"/><path d="M441.4,117.8L449.4,125.8M441.4,125.8L449.4,117.8" class="mk xk s3"/><text x="455.4" y="125.8" class="dlab s3">Refiner (7-day)</text><text x="46" y="12" class="ylab">px</text></svg></figure>
+</div>
+<table>
+  <caption>Same values as the charts, for reading exactly.</caption>
+  <thead><tr><th scope="col">day</th>
+    <th scope="col">x drift</th><th scope="col">x MAP</th><th scope="col">x refiner</th>
+    <th scope="col" class="grp">y drift</th><th scope="col">y MAP</th><th scope="col">y refiner</th>
+    <th scope="col" class="grp">A %</th><th scope="col">resid rms %</th></tr></thead>
+  <tbody><tr><th scope='row'>07-20</th><td>1183</td><td>1183</td><td>—</td><td>171</td><td>172</td><td>—</td><td>1.68</td><td>0.273</td></tr><tr><th scope='row'>07-21</th><td>1184</td><td>1192</td><td>1192</td><td>176</td><td>161</td><td>180</td><td>2.11</td><td>0.318</td></tr><tr><th scope='row'>07-22</th><td>1188</td><td>1214</td><td>1200</td><td>174</td><td>162</td><td>176</td><td>1.22</td><td>0.383</td></tr><tr><th scope='row'>07-23</th><td>1211</td><td>1247</td><td>1200</td><td>160</td><td>148</td><td>176</td><td>1.47</td><td>0.878</td></tr><tr><th scope='row'>07-24</th><td>1218</td><td>1270</td><td>1230</td><td>156</td><td>144</td><td>153</td><td>2.01</td><td>0.199</td></tr><tr><th scope='row'>07-25</th><td>1224</td><td>1283</td><td>1230</td><td>155</td><td>139</td><td>153</td><td>1.98</td><td>0.335</td></tr><tr><th scope='row'>07-26</th><td>1228</td><td>1289</td><td>1241</td><td>154</td><td>133</td><td>151</td><td>2.32</td><td>0.231</td></tr><tr><th scope='row'>07-27</th><td>1231</td><td>1298</td><td>—</td><td>157</td><td>133</td><td>—</td><td>2.22</td><td>0.249</td></tr></tbody>
+</table>
+
+<h2>Per-day panels</h2>
+<div class="legend">
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> drift prediction</span>
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> MAP centre</span>
+  <span class="k"><svg class="glyph" viewBox="0 0 16 16"><path d="M3,3L13,13M3,13L13,3" stroke="currentColor" stroke-width="1.8" fill="none"/></svg> refiner centre</span>
+  <span>markers are shape-coded, not colour-coded</span>
+</div>
+<p class="lede" style="margin-bottom:16px">Dip, blob and residual panels share one fixed
+diverging scale, &plusmn;3% around zero &mdash; blue below the fitted
+background, red above, neutral grey at zero. The data panel is a single-hue magnitude ramp
+over its own 1st&ndash;99th percentile. Each panel is 300&nbsp;px of the 4K frame; the top
+is clipped on later days because the blemish is only ~150&nbsp;px below the frame edge.</p>
+<section class="day">
+  <div class="dayhead">
+    <h3>2026-07-20</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>1.68%</dd></div>
+      <div><dt>observed dip</dt><dd>2.13%</dd></div>
+      <div><dt>residual rms</dt><dd>0.273%</dd></div>
+      <div><dt>drift pred.</dt><dd>1183, 171</dd></div>
+      <div><dt>MAP</dt><dd>1183, 172</dd></div>
+      <div><dt>refiner</dt><dd>&mdash;</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260720_data.png" alt="stacked data for 2026-07-20" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260720_dip.png" alt="data &minus; background for 2026-07-20" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260720_model.png" alt="fitted blob for 2026-07-20" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260720_resid.png" alt="residual for 2026-07-20" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-21</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>2.11%</dd></div>
+      <div><dt>observed dip</dt><dd>2.31%</dd></div>
+      <div><dt>residual rms</dt><dd>0.318%</dd></div>
+      <div><dt>drift pred.</dt><dd>1184, 176</dd></div>
+      <div><dt>MAP</dt><dd>1192, 161</dd></div>
+      <div><dt>refiner</dt><dd>1192, 180</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260721_data.png" alt="stacked data for 2026-07-21" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260721_dip.png" alt="data &minus; background for 2026-07-21" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260721_model.png" alt="fitted blob for 2026-07-21" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260721_resid.png" alt="residual for 2026-07-21" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-22</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>1.22%</dd></div>
+      <div><dt>observed dip</dt><dd>2.29%</dd></div>
+      <div><dt>residual rms</dt><dd>0.383%</dd></div>
+      <div><dt>drift pred.</dt><dd>1188, 174</dd></div>
+      <div><dt>MAP</dt><dd>1214, 162</dd></div>
+      <div><dt>refiner</dt><dd>1200, 176</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260722_data.png" alt="stacked data for 2026-07-22" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260722_dip.png" alt="data &minus; background for 2026-07-22" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260722_model.png" alt="fitted blob for 2026-07-22" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260722_resid.png" alt="residual for 2026-07-22" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-23</h3><span class="flag">cloud-dominated stack &mdash; position not trustworthy</span>
+    <dl>
+      <div><dt>depth A</dt><dd>1.47%</dd></div>
+      <div><dt>observed dip</dt><dd>3.97%</dd></div>
+      <div><dt>residual rms</dt><dd>0.878%</dd></div>
+      <div><dt>drift pred.</dt><dd>1211, 160</dd></div>
+      <div><dt>MAP</dt><dd>1247, 148</dd></div>
+      <div><dt>refiner</dt><dd>1200, 176</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260723_data.png" alt="stacked data for 2026-07-23" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260723_dip.png" alt="data &minus; background for 2026-07-23" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260723_model.png" alt="fitted blob for 2026-07-23" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260723_resid.png" alt="residual for 2026-07-23" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-24</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>2.01%</dd></div>
+      <div><dt>observed dip</dt><dd>2.10%</dd></div>
+      <div><dt>residual rms</dt><dd>0.199%</dd></div>
+      <div><dt>drift pred.</dt><dd>1218, 156</dd></div>
+      <div><dt>MAP</dt><dd>1270, 144</dd></div>
+      <div><dt>refiner</dt><dd>1230, 153</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260724_data.png" alt="stacked data for 2026-07-24" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260724_dip.png" alt="data &minus; background for 2026-07-24" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260724_model.png" alt="fitted blob for 2026-07-24" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260724_resid.png" alt="residual for 2026-07-24" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-25</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>1.98%</dd></div>
+      <div><dt>observed dip</dt><dd>2.35%</dd></div>
+      <div><dt>residual rms</dt><dd>0.335%</dd></div>
+      <div><dt>drift pred.</dt><dd>1224, 155</dd></div>
+      <div><dt>MAP</dt><dd>1283, 139</dd></div>
+      <div><dt>refiner</dt><dd>1230, 153</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260725_data.png" alt="stacked data for 2026-07-25" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260725_dip.png" alt="data &minus; background for 2026-07-25" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260725_model.png" alt="fitted blob for 2026-07-25" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260725_resid.png" alt="residual for 2026-07-25" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-26</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>2.32%</dd></div>
+      <div><dt>observed dip</dt><dd>2.45%</dd></div>
+      <div><dt>residual rms</dt><dd>0.231%</dd></div>
+      <div><dt>drift pred.</dt><dd>1228, 154</dd></div>
+      <div><dt>MAP</dt><dd>1289, 133</dd></div>
+      <div><dt>refiner</dt><dd>1241, 151</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260726_data.png" alt="stacked data for 2026-07-26" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260726_dip.png" alt="data &minus; background for 2026-07-26" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260726_model.png" alt="fitted blob for 2026-07-26" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260726_resid.png" alt="residual for 2026-07-26" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section><section class="day">
+  <div class="dayhead">
+    <h3>2026-07-27</h3>
+    <dl>
+      <div><dt>depth A</dt><dd>2.22%</dd></div>
+      <div><dt>observed dip</dt><dd>2.47%</dd></div>
+      <div><dt>residual rms</dt><dd>0.249%</dd></div>
+      <div><dt>drift pred.</dt><dd>1231, 157</dd></div>
+      <div><dt>MAP</dt><dd>1298, 133</dd></div>
+      <div><dt>refiner</dt><dd>&mdash;</dd></div>
+    </dl>
+  </div>
+  <div class="panels"><figure class="pan"><img src="20260727_data.png" alt="stacked data for 2026-07-27" loading="lazy"><figcaption>stacked data</figcaption></figure><figure class="pan"><img src="20260727_dip.png" alt="data &minus; background for 2026-07-27" loading="lazy"><figcaption>data &minus; background</figcaption></figure><figure class="pan"><img src="20260727_model.png" alt="fitted blob for 2026-07-27" loading="lazy"><figcaption>fitted blob</figcaption></figure><figure class="pan"><img src="20260727_resid.png" alt="residual for 2026-07-27" loading="lazy"><figcaption>residual</figcaption></figure></div>
+</section>
+</div>

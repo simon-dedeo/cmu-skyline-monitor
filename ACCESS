@@ -1,0 +1,15 @@
+# CMU Skyline Monitor — machine access
+
+## PRIMARY (as of 2026-07-17) — MacBook Air M1, "pandr"
+ssh proofsandreasons@pandr.wifi.local.cmu.edu
+# passwordless key login + passwordless sudo. Runs all monitor jobs, uploads to santafe.
+# Toolchain: Homebrew (/opt/homebrew), venv at ~/monitor/venv (Python 3.13 + OpenCV 5 + libusb1),
+#            imagesnap via brew. Santafe upload key: ~/.ssh/id_ed25519.
+
+## OLD (retired 2026-07-17, jobs disabled) — 2015 MacBook Pro, "laboratorys-mbp"
+ssh laboratoryforsocialminds@laboratorys-mbp.wifi.local.cmu.edu
+# launchd jobs parked in ~/Library/LaunchAgents/disabled-by-claude-2026-07-17/ (reversible).
+# Camera hardware died 2026-07-16. Kept as a warm spare.
+
+## Public site (served from whichever machine runs the jobs):
+# https://sites.santafe.edu/~simon/   and   https://proofsandreasons.io/ (dashboard/homepage)

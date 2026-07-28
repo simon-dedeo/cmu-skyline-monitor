@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.goldscan</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/proofsandreasons/monitor/goldtick.sh</string>
+    </array>
+
+    <!-- Fire every 150 s (2.5 min — Simon 2026-07-14: gentler on the GS cam,
+         whose firmware wedged under the old 1-min dawn duty cycle). goldtick.sh
+         is a cheap no-op outside golden-hour windows; inside a window it
+         captures + scores a fresh sky frame and refreshes the kiosk sky.jpg. -->
+    <key>StartInterval</key>
+    <integer>150</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/proofsandreasons/monitor</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/proofsandreasons/monitor/goldscan.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/proofsandreasons/monitor/goldscan.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

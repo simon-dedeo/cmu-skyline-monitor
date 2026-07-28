@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camera Aiming — live</title>
+<style>
+  :root{--line:rgba(255,255,255,.35)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#000;color:#eaeef6;
+    font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Display",Arial,sans-serif;overflow:hidden}
+  .wrap{height:100vh;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+  @media (max-aspect-ratio:1/1){.wrap{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}
+  .cam{position:relative;background:#111;overflow:hidden}
+  .cam img{width:100%;height:100%;object-fit:contain;display:block}
+  /* rule-of-thirds + centre framing guides */
+  .grid{position:absolute;inset:0;pointer-events:none}
+  .grid::before,.grid::after{content:"";position:absolute;background:var(--line)}
+  .grid .v1,.grid .v2,.grid .h1,.grid .h2{position:absolute;background:var(--line)}
+  .grid .v1{left:33.33%;top:0;bottom:0;width:1px}
+  .grid .v2{left:66.66%;top:0;bottom:0;width:1px}
+  .grid .h1{top:33.33%;left:0;right:0;height:1px}
+  .grid .h2{top:66.66%;left:0;right:0;height:1px}
+  .grid .cx{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);
+    border:1px solid rgba(255,90,90,.9);border-radius:50%}
+  .tag{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.6);padding:5px 11px;border-radius:7px;
+    letter-spacing:.14em;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .fps{position:absolute;bottom:12px;right:14px;background:rgba(0,0,0,.55);padding:3px 9px;border-radius:6px;
+    font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8fd6a8}
+  .focus{position:absolute;top:12px;right:14px;background:rgba(0,0,0,.66);padding:9px 14px;border-radius:10px;
+    text-align:center;font-family:ui-monospace,Menlo,monospace;min-width:120px}
+  .focus .fnum{font-size:30px;font-weight:700;line-height:1;color:#eaeef6}
+  .focus .fpk{font-size:11px;color:#8a97b0;margin-top:4px;letter-spacing:.06em}
+  .focus.best{outline:2px solid #63d68f} .focus.best .fnum{color:#63d68f}
+  .hint{position:fixed;bottom:10px;left:0;right:0;text-align:center;color:#8a97b0;font-size:12px;
+    font-family:ui-monospace,Menlo,monospace}
+</style>
+<div class="wrap">
+  <div class="cam">
+    <img id="sky" alt="sky">
+    <div class="grid"><div class="v1"></div><div class="v2"></div><div class="h1"></div><div class="h2"></div><div class="cx"></div></div>
+    <div class="tag">SKYLINE CAM (B0578 GS)</div><div class="fps" id="fsky">–</div>
+    <div class="focus" id="focusbox"><div class="fnum" id="fnum">—</div><div class="fpk" id="fpk">FOCUS · turn to maximize</div></div>
+  </div>
+  <div class="cam">
+    <img id="courtyard" alt="courtyard">
+    <div class="grid"><div class="v1"></div><div class="v2"></div><div class="h1"></div><div class="h2"></div><div class="cx"></div></div>
+    <div class="tag">COURTYARD CAM (1080P Low Light)</div><div class="fps" id="fcourt">–</div>
+  </div>
+</div>
+<div class="hint">live aiming preview · rule-of-thirds + centre guides · updates ~5&times;/sec · auto-exposure</div>
+<script>
+  // Reload each preview JPEG with a cache-bust; count effective fps per cam.
+  const cams = {sky:'#fsky', courtyard:'#fcourt'};
+  const cnt = {sky:0, courtyard:0};
+  for(const name in cams){
+    const el=document.getElementById(name);
+    const step=()=>{ const n=new Image(); n.onload=()=>{el.src=n.src; cnt[name]++; step();};
+                     n.onerror=()=>setTimeout(step,300); n.src='preview/'+name+'.jpg?_='+performance.now(); };
+    step();
+  }
+  setInterval(()=>{ for(const n in cams){ document.querySelector(cams[n]).textContent=cnt[n]+' fps'; cnt[n]=0; } },1000);
+  // focus-assist: poll sky sharpness (turn the lens to maximize it)
+  setInterval(async()=>{
+    try{ const r=await fetch('preview/focus.json?_='+Date.now(),{cache:'no-store'}); const d=await r.json();
+      document.getElementById('fnum').textContent=d.sky;
+      document.getElementById('fpk').textContent='FOCUS · peak '+d.peak;
+      document.getElementById('focusbox').classList.toggle('best', d.peak>0 && d.sky>=0.97*d.peak);
+    }catch(e){}
+  },350);
+</script>

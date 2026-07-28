@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMU Skyline Monitor</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel2:#1a1f2b; --line:#252b39;
+    --ink:#eef2f8; --dim:#8b97ad; --dimmer:#5b6577;
+    --accent:#ffb347; --accent2:#5cc8ff; --good:#5fd68a;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 70% -10%, #182034 0%, var(--bg) 55%);
+    color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden; height:100vh;
+  }
+  .wrap{height:100vh;display:grid;grid-template-columns:1.55fr 1fr;grid-template-rows:auto 1fr auto;gap:18px;padding:22px}
+  header{grid-column:1/3;display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+  .clock{font-weight:700;font-size:5.2vw;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .clock .sec{color:var(--accent);font-size:.42em;vertical-align:.28em;margin-left:.1em}
+  .datebar{text-align:right}
+  .datebar .d{font-size:1.5vw;font-weight:600}
+  .datebar .loc{color:var(--dim);font-size:1.0vw;margin-top:2px}
+  .datebar .proj{color:var(--accent);font-size:.95vw;margin-top:4px;letter-spacing:.04em}
+
+  .viewer{grid-column:1;grid-row:2;align-self:start;display:flex;flex-direction:column;gap:10px;min-height:0}
+  .hero{position:relative;border-radius:18px;overflow:hidden;background:#000;box-shadow:var(--shadow);border:1px solid var(--line);aspect-ratio:16/10;width:100%}
+  .hero img{width:100%;height:100%;object-fit:cover;display:block}
+  .cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:0 4px;font-size:.95vw;color:var(--dim)}
+  .cap .age{color:var(--accent2)}
+
+  aside{grid-column:2;grid-row:2;display:flex;flex-direction:column;gap:16px;min-height:0}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
+  .now{display:flex;align-items:center;gap:18px}
+  .now .temp{font-size:4.4vw;font-weight:700;line-height:.9;font-variant-numeric:tabular-nums}
+  .now .meta{flex:1}
+  .now .desc{font-size:1.35vw;font-weight:600}
+  .now .sub{color:var(--dim);font-size:.95vw;margin-top:6px;line-height:1.5}
+  .now .sub b{color:var(--ink);font-weight:600}
+
+  .hourly{display:flex;gap:0;justify-content:space-between;overflow:hidden}
+  .hourly .h{flex:1;text-align:center;padding:2px 0;border-right:1px solid var(--line)}
+  .hourly .h:last-child{border-right:0}
+  .hourly .h .t{color:var(--dim);font-size:.72vw}
+  .hourly .h .tp{font-weight:700;font-size:1.15vw;margin:3px 0;font-variant-numeric:tabular-nums}
+  .hourly .h .p{color:var(--accent2);font-size:.68vw;height:.9em}
+
+  .sun{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+  .sun .row{display:flex;justify-content:space-between;font-size:.95vw}
+  .sun .row .k{color:var(--dim)}
+  .sun .row .v{font-weight:600;font-variant-numeric:tabular-nums}
+  .arc{grid-column:1/3;height:6px;border-radius:3px;background:var(--line);position:relative;margin-top:2px}
+  .arc .fill{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px}
+  .arc .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 10px var(--accent)}
+  .skybarwrap{margin-top:12px}
+  .skybar{display:block;width:100%;height:16px;border-radius:5px;border:1px solid var(--line);background:#0a0d14}
+  .skybarax{display:flex;justify-content:space-between;color:var(--dimmer);font-size:.62vw;margin-top:3px}
+  .skybarcap{color:var(--dimmer);font-size:.64vw;margin-top:3px;letter-spacing:.04em}
+
+  footer{grid-column:1/3;grid-row:3;display:flex;justify-content:space-between;align-items:center;
+    color:var(--dimmer);font-size:.82vw;border-top:1px solid var(--line);padding-top:10px}
+  footer .seg b{color:var(--dim);font-weight:600}
+  .dot-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:6px;box-shadow:0 0 8px var(--good)}
+  .stale{background:var(--accent)!important;box-shadow:0 0 8px var(--accent)!important}
+  .down{background:#ff6b6b!important;box-shadow:0 0 8px #ff6b6b!important}
+  .h5{color:var(--dimmer);text-transform:uppercase;letter-spacing:.14em;font-size:.72vw;margin-bottom:10px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="clock" id="clock">--:--<span class="sec" id="sec">00</span></div>
+    <div class="datebar">
+      <div class="d" id="date">—</div>
+      <div class="loc" id="loc">Carnegie Mellon University · Pittsburgh, PA</div>
+    </div>
+  </header>
+
+  <div class="viewer">
+    <div class="hero"><img id="heroImg" alt="skyline"></div>
+    <div class="cap"><span id="heroCap">Pittsburgh Skyline</span><span class="age" id="heroAge"></span></div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <div class="now">
+        <div class="temp" id="nowTemp">--°</div>
+        <div class="meta">
+          <div class="desc" id="nowDesc">—</div>
+          <div class="sub" id="nowSub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h5">Next 12 hours</div>
+      <div class="hourly" id="hourly"></div>
+    </div>
+
+    <div class="card">
+      <div class="h5">Sun &amp; golden hour · today</div>
+      <div class="sun" id="sun"></div>
+      <div class="skybarwrap">
+        <canvas id="skybar" class="skybar"></canvas>
+        <div class="skybarcap">average sky colour</div>
+        <canvas id="imgbar" class="skybar" style="margin-top:9px"></canvas>
+        <div class="skybarax"><span>12a</span><span>6a</span><span>noon</span><span>6p</span><span>12a</span></div>
+        <div class="skybarcap">average campus colour (below the sky) · midnight → midnight</div>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1;min-height:0">
+      <div class="h5">Forecast</div>
+      <div id="fcast" style="font-size:.95vw;line-height:1.7"></div>
+    </div>
+  </aside>
+
+  <footer>
+    <div class="seg"><span class="dot-live" id="live"></span><span id="fresh">loading…</span></div>
+    <div class="seg" id="sys"></div>
+    <div class="seg" id="host"></div>
+  </footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+
+function tick(){
+  const d=new Date();
+  $('#clock').firstChild.nodeValue=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  $('#sec').textContent=pad(d.getSeconds());
+  $('#date').textContent=d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+function fmtT(iso){ if(!iso)return '—'; const d=new Date(iso);
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function ago(iso){ if(!iso)return ''; const s=(Date.now()-new Date(iso))/1000;
+  if(s<90)return 'just now'; if(s<3600)return Math.round(s/60)+' min ago';
+  return Math.round(s/3600)+' h ago'; }
+
+async function refresh(){
+  try{
+    const r=await fetch('data.json?_='+Date.now(),{cache:'no-store'});
+    const d=await r.json();
+    render(d);
+    // Light = is the camera taking pictures? (5-min captures → >20 min = down.)
+    // Amber if data.json itself is stale (monitor job dead), red if the monitor
+    // runs but the camera isn't delivering, green otherwise.
+    const genAge=(Date.now()-new Date(d.generated))/1000;
+    const cam=(d.cameras&&d.cameras.sky)||{};
+    const camAge=cam.last_capture?(Date.now()-new Date(cam.last_capture))/1000:null;
+    const L=$('#live'); L.classList.remove('stale','down');
+    if(genAge>1200){ L.classList.add('stale'); $('#fresh').textContent='monitor stale · '+ago(d.generated); }
+    else if(camAge!=null&&camAge>1200){ L.classList.add('down'); $('#fresh').textContent='camera down · last picture '+ago(cam.last_capture); }
+    else { $('#fresh').textContent=(camAge!=null?'camera live · picture '+ago(cam.last_capture):'updated '+ago(d.generated)); }
+  }catch(e){ $('#fresh').textContent='waiting for data.json…'; }
+  // cache-bust the image
+  const b='?_='+Date.now();
+  $('#heroImg').src='sky.jpg'+b;
+  loadSky();
+}
+
+// colour-of-the-day bar: today's 5-min average-sky-colour samples (local skycolor.js)
+let _sky=null;
+function renderBar(cv, samples){
+  if(!cv) return;
+  const W=Math.max(1,Math.round(cv.clientWidth)), H=16; cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0a0d14'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.09)';
+  for(let hh=6;hh<24;hh+=6){ ctx.fillRect(Math.round(hh/24*W),0,1,H); }
+  if(!samples||!samples.length) return;
+  const s=samples;
+  for(let i=0;i<s.length;i++){
+    const x0=s[i][0]/1440*W, x1=(i+1<s.length?s[i+1][0]:s[i][0]+5)/1440*W;
+    ctx.fillStyle=s[i][1]; ctx.fillRect(Math.floor(x0),0,Math.max(1,Math.ceil(x1-x0)),H);
+  }
+  const last=s[s.length-1], mx=last[0]/1440*W;
+  ctx.beginPath(); ctx.arc(Math.min(W-7,Math.max(7,mx)),H/2,6.5,0,Math.PI*2);
+  ctx.fillStyle=last[1]; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+}
+function renderBars(sc){ _sky=sc; renderBar($('#skybar'), sc&&sc.samples); renderBar($('#imgbar'), sc&&sc.isamples); }
+function loadSky(){
+  const el=document.createElement('script'); el.src='skycolor.js?_='+Date.now();
+  el.onload=()=>{ if(window.SKYCOLOR) renderBars(window.SKYCOLOR); el.remove(); };
+  el.onerror=()=>el.remove(); document.head.appendChild(el);
+}
+window.addEventListener('resize',()=>{ if(_sky) renderBars(_sky); });
+
+function render(d){
+  const w=d.weather||{}, c=w.current||{}, s=d.solar||{}, sys=d.system||{};
+  $('#loc').textContent=d.location||'';
+
+  // current conditions
+  $('#nowTemp').textContent=(c.tempF!=null?c.tempF:'--')+'°';
+  $('#nowDesc').textContent=c.text||(w.forecast&&w.forecast[0]?w.forecast[0].short:'—');
+  const bits=[];
+  if(c.feelsF!=null)bits.push(`Feels <b>${c.feelsF}°</b>`);
+  if(c.humidity!=null)bits.push(`Humidity <b>${c.humidity}%</b>`);
+  if(c.windMph!=null)bits.push(`Wind <b>${c.windMph} mph${c.windDir?' '+c.windDir:''}</b>`);
+  if(c.dewF!=null)bits.push(`Dew <b>${c.dewF}°</b>`);
+  if(c.cloud!=null)bits.push(`Cloud <b>${c.cloud}%</b>`);
+  $('#nowSub').innerHTML=bits.join(' &nbsp;·&nbsp; ');
+
+  // hourly strip
+  $('#hourly').innerHTML=(w.hourly||[]).slice(0,10).map(h=>{
+    const t=new Date(h.time).toLocaleTimeString([],{hour:'numeric'});
+    const pop=h.pop?`${h.pop}%`:'';
+    return `<div class="h"><div class="t">${t}</div><div class="tp">${h.temp}°</div><div class="p">${pop}</div></div>`;
+  }).join('');
+
+  // sun panel (the colour-of-the-day bar is drawn separately by renderSkyBar)
+  const rows=[['Sunrise',s.sunrise],['Sunset',s.sunset],
+              ['Golden AM',s.golden_morning_mid],['Golden PM',s.golden_evening_mid]];
+  $('#sun').innerHTML=rows.map(([k,v])=>`<div class="row"><span class="k">${k}</span><span class="v">${fmtT(v)}</span></div>`).join('');
+
+  // forecast list
+  $('#fcast').innerHTML=(w.forecast||[]).slice(0,5).map(p=>
+    `<div><b>${p.name}:</b> ${p.short}, ${p.temp}°${p.unit} <span style="color:var(--dimmer)">· ${p.windDir} ${p.wind}</span></div>`
+  ).join('');
+
+  // camera captions + footer
+  $('#heroCap').textContent=(d.cameras&&d.cameras.sky?d.cameras.sky.label:'Pittsburgh Skyline');
+  $('#heroAge').textContent='local '+(d.generated_local||'');
+  if(sys.disk)$('#sys').innerHTML=`<b>Disk</b> ${sys.disk.used}/${sys.disk.size} · <b>CPU</b> ${sys.load&&sys.cpus?Math.round(sys.load[0]/sys.cpus*100)+'%':'?'}`;
+  $('#host').textContent=sys.host||'';
+}
+
+refresh();
+setInterval(refresh,60000);
+</script>
+</body>
+</html>

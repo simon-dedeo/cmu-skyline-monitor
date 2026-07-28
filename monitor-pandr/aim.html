@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyCam aimer</title>
+<style>
+  body { margin:0; background:#0d0d0f; color:#c7d0e0;
+         font:14px -apple-system,"Helvetica Neue",Arial,sans-serif; }
+  .bar { padding:8px 12px; line-height:1.4; }
+  .wrap { position:relative; width:100%; max-width:100vw; margin:0 auto; line-height:0; }
+  img { width:100%; height:auto; display:block; }
+  .grid { position:absolute; inset:0; pointer-events:none; }
+  b { color:#00e5ff; }
+</style>
+<div class="bar">📷 <b>SkyCam aimer</b> — live streaming preview. Rule-of-thirds + center cross for leveling/framing.</div>
+<div class="wrap">
+  <img id="v" src="aim.jpg" alt="camera preview">
+  <svg class="grid" viewBox="0 0 120 90" preserveAspectRatio="none">
+    <g stroke="#00e5ff" stroke-width="0.25" opacity="0.55">
+      <line x1="40" y1="0" x2="40" y2="90"/><line x1="80" y1="0" x2="80" y2="90"/>
+      <line x1="0" y1="30" x2="120" y2="30"/><line x1="0" y1="60" x2="120" y2="60"/>
+    </g>
+    <g stroke="#ff3b30" stroke-width="0.3" opacity="0.85">
+      <line x1="60" y1="43.5" x2="60" y2="46.5"/><line x1="58.5" y1="45" x2="61.5" y2="45"/>
+    </g>
+  </svg>
+</div>
+<div class="bar" id="t">waiting for first frame…</div>
+<script>
+  var v = document.getElementById('v'), t = document.getElementById('t');
+  function tick(){
+    var u = 'aim.jpg?_=' + Date.now();
+    var i = new Image();
+    i.onload = function(){ v.src = u; t.textContent = 'updated ' + new Date().toLocaleTimeString(); };
+    i.onerror = function(){ t.textContent = 'no frame yet (aimer starting)…'; };
+    i.src = u;
+  }
+  setInterval(tick, 350); tick();
+</script>

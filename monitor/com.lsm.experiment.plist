@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.experiment</string>
+
+    <!-- ssh->localhost hop so imagesnap/OpenCV inherit sshd's camera (TCC) grant. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/ssh</string>
+        <string>-i</string>
+        <string>/Users/laboratoryforsocialminds/.ssh/id_ed25519</string>
+        <string>-o</string>
+        <string>BatchMode=yes</string>
+        <string>-o</string>
+        <string>StrictHostKeyChecking=accept-new</string>
+        <string>-o</string>
+        <string>ConnectTimeout=25</string>
+        <string>localhost</string>
+        <string>bash $HOME/monitor/experiment.sh</string>
+    </array>
+
+    <!-- Every 30 minutes. Weekend A/B harness; disable when done experimenting. -->
+    <key>StartInterval</key>
+    <integer>1800</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/experiment.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/experiment.launchd.log</string>
+</dict>
+</plist>

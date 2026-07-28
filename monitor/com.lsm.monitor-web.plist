@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.monitor-web</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/laboratoryforsocialminds/monitor/serve.sh</string>
+    </array>
+    <!-- Long-running server: keep it alive and start on login. -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/Users/laboratoryforsocialminds/monitor</string>
+    <key>StandardOutPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/web.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/web.log</string>
+</dict>
+</plist>

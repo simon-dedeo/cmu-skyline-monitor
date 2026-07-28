@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.kiosk</string>
+
+    <!-- Open the dashboard in TRUE fullscreen at login (auto-login is on, so this
+         fires on every boot — power-loss recovery included). kiosk.sh launches
+         Google Chrome in --kiosk mode: a borderless fullscreen window with no
+         tabs/toolbar/title bar. Chrome fullscreens itself, so this needs NO
+         Accessibility or other TCC permission — fully unattended, no GUI clicks.
+         (The old Safari approach relied on a Cmd-Ctrl-F keystroke that macOS
+         blocks for automation, which left the window bordered.) One-shot: no
+         KeepAlive, no StartInterval. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/proofsandreasons/monitor/kiosk.sh</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Give the web server (com.lsm.monitor-web) time to come up first. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>KIOSK_STARTUP_DELAY</key>
+        <string>15</string>
+    </dict>
+
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/proofsandreasons/monitor</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/proofsandreasons/monitor/kiosk.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/proofsandreasons/monitor/kiosk.log</string>
+</dict>
+</plist>

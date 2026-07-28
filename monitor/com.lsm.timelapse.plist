@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.timelapse</string>
+
+    <!-- ssh->localhost hop so imagesnap inherits sshd's camera (TCC) grant. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/ssh</string>
+        <string>-i</string>
+        <string>/Users/laboratoryforsocialminds/.ssh/id_ed25519</string>
+        <string>-o</string>
+        <string>BatchMode=yes</string>
+        <string>-o</string>
+        <string>StrictHostKeyChecking=accept-new</string>
+        <string>-o</string>
+        <string>ConnectTimeout=25</string>
+        <string>localhost</string>
+        <string>bash $HOME/monitor/timelapse.sh</string>
+    </array>
+
+    <!-- Fire on the hour, every hour (frames land at HH00Z). -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/timelapse.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/laboratoryforsocialminds/monitor/timelapse.launchd.log</string>
+</dict>
+</plist>

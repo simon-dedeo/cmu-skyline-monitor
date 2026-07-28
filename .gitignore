@@ -1,0 +1,19 @@
+# bulky image assets (regenerable from the pandr archive via golden_hours/gen.py chain)
+golden_hours/med/
+golden_hours/thumb/
+golden_gallery/
+golden_panels/
+# old-machine archive dump and unrelated backups
+ARCHIVE-2026-07-15/
+DUNMOYLE_MBP/
+tmp/
+__pycache__/
+*.pyc
+.DS_Store
+# LaTeX intermediates
+spot_paper/*.aux
+spot_paper/*.log
+spot_paper/*.out
+spot_paper/*.toc
+spot_paper/*.synctex.gz
+spot_paper/*log
