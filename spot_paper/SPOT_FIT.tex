@@ -23,7 +23,7 @@
 
 \title{\bfseries Tracking and Removing a Migrating Window Blemish}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v6.3)}
+\date{2026-07-28 (v6.4)}
 
 \begin{document}
 \maketitle
@@ -625,11 +625,17 @@ integrated deficit (rel.) & 1.00 & 1.08 & 1.07 \\
 \end{center}
 
 Red is 20\% deeper than blue but also narrower, and the integrated deficits agree to
-within 8\% across all three channels: the depth/width pattern is chromatic defocus (the
-red PSF is slightly tighter for this near-field geometry), while the blur-invariant
-total extinction is \textbf{neutral to $\pm 8\%$} --- with, if anything, a few percent
-\emph{excess} extinction at the long-wavelength end, the opposite of Rayleigh-like
-scattering. That bound excludes strongly pigmented candidates: rust ($\times$ several
+within 8\% across all three channels. The depth/width pattern is \emph{not} lens
+chromatism --- for this geometry every axial mechanism (normal dispersion, achromat
+secondary spectrum, edge diffraction at Fresnel number $\sim$4, sensor carrier
+diffusion) predicts the red shadow \emph{broader}, the wrong sign. What produces
+deeper-and-narrower red at constant integral is the speck itself: micron-scale surface
+texture scatters short wavelengths at small angles, and scattered blue that stays within
+the pupil's acceptance re-enters the bundles --- refilling the shadow core (blue
+shallower), feathering its skirt (blue wider, by $\sim\SI{30}{\micro m}$ at the pane),
+and slightly lowering the blue integral, exactly as measured. Red, barely scattered,
+casts the cleanest geometric shadow. The blur-invariant total extinction remains
+\textbf{neutral to $\pm 8\%$}. That bound excludes strongly pigmented candidates: rust ($\times$ several
 in the blue), organic tar or sap, pollen, chlorophyll debris. What remains is the
 unglamorous family that grey, wavelength-flat extinction describes: mineral dust,
 paint or plaster fleck, paper fibre, insect frass. In transmission at $f/4$ the speck

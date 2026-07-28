@@ -381,6 +381,8 @@ INPUT ./figs/diff.png
 INPUT ./figs/diff.png
 INPUT ./figs/diff.png
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx7.tfm
+INPUT /opt/local/share/texmf-texlive/fonts/tfm/jknappen/ec/tcrm0800.tfm
+INPUT /opt/local/share/texmf-texlive/fonts/tfm/jknappen/ec/tcrm0600.tfm
 INPUT SPOT_FIT.aux
 INPUT ./SPOT_FIT.out
 INPUT ./SPOT_FIT.out
