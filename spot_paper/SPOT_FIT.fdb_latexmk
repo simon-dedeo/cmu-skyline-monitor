@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1785279450.14966 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785279450.96477 0
-  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785279449.98737 40617 3dc77426489239b012e99ea3f289fffe ""
+["pdflatex"] 1785279656.61333 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785279657.37274 0
+  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785279655.68247 40739 fdde86b11e1478cac6887bd6bf5abe88 ""
   "/opt/local/etc/texmf/texmf.cnf" 1781394635.23998 41383 e2d01f660d20f5e7c07ea7d1b7d1a538 ""
   "/opt/local/share/texmf-texlive/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1520408187 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/opt/local/share/texmf-texlive/fonts/map/fontname/texfonts.map" 1677027285 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -208,13 +208,13 @@
   "/opt/local/share/texmf-texlive/tex/latex/xcolor/xcolor.sty" 1738800804 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "/opt/local/var/db/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781395727 5541357 bc9bda23ab9864778b6c0bfe4c64488b ""
   "/opt/local/var/db/texmf/web2c/pdftex/pdflatex.fmt" 1781394816 3637580 1d37c6ff43be158676db23520b4cde8e ""
-  "SPOT_FIT.aux" 1785279450.91199 10749 ebe91b2342f155cae11006ed35c479d1 "pdflatex"
-  "SPOT_FIT.out" 1785279450.91298 1936 a52808afde6e136d2b3597cb6db031d5 "pdflatex"
-  "SPOT_FIT.tex" 1785279449.98737 40617 3dc77426489239b012e99ea3f289fffe ""
-  "SPOT_FIT.toc" 1785279450.91317 2072 ae28ab39495ee23b41025983e4386a55 "pdflatex"
+  "SPOT_FIT.aux" 1785279657.32323 10991 7ef6fb78b3315330d27121044bc85ec4 "pdflatex"
+  "SPOT_FIT.out" 1785279657.32413 1936 a52808afde6e136d2b3597cb6db031d5 "pdflatex"
+  "SPOT_FIT.tex" 1785279655.68247 40739 fdde86b11e1478cac6887bd6bf5abe88 ""
+  "SPOT_FIT.toc" 1785279657.32429 2072 ae28ab39495ee23b41025983e4386a55 "pdflatex"
   "figs/after.png" 1785188290.37017 617309 355dd71df8781bd8153fc61208613fc2 ""
   "figs/before.png" 1785188290.36737 626977 922b9c5c96400de0d3adebe8e2d4a1e5 ""
-  "figs/diff.png" 1785188290.3729 128677 4d10d199b4dcc87ae1a8fe01a601f1ae ""
+  "figs/diff.png" 1785279625 306163 c21db5e34a977f2540cc124c8bcd073b ""
   "figs/full_after.jpg" 1785277170 293296 8de1bad3a980fcecc335acec32c5d4ab ""
   "figs/full_before.jpg" 1785277170 292457 3dd99f099e02ff6f7d6a73669b6e4ea0 ""
   "figs/gain_error.pdf" 1785188291.12975 14704 e60b2d859cc2bc96d3c430ba4fb6b94c ""
