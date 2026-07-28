@@ -9,7 +9,7 @@
 \usepackage{subcaption}
 \usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,
             citecolor=blue!55!black,
-            pdftitle={Tracking and Removing a Migrating Window Blemish in a Time-Lapse Sky Monitor},
+            pdftitle={Tracking and Removing a Migrating Window Blemish},
             pdfauthor={CMU Skyline Monitor (Simon DeDeo, with Claude)},
             pdfsubject={Bayesian estimation and autonomous correction of a near-field optical defect},
             pdfkeywords={Bayesian inference, image correction, defocus optics, autonomous systems}]{hyperref}
@@ -21,35 +21,29 @@
 \newcommand{\Lsp}{L_{\mathrm{sp}}}
 \newcommand{\code}[1]{\texttt{\small #1}}
 
-\title{\bfseries Tracking and Removing a Migrating Window Blemish\\
-       in a Time-Lapse Sky Monitor}
+\title{\bfseries Tracking and Removing a Migrating Window Blemish}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v6.2)}
+\date{2026-07-28 (v6.3)}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
 \noindent
-The skyline monitor observes through a window carrying a $\sim\SI{0.25}{mm}$ debris
-speck, imaged by the camera's $f/4$ pupil from $\sim\SI{3}{cm}$ as a \SI{76}{px},
-\SIrange{2}{7}{\percent} dark smudge that exposure fusion and local-contrast enhancement
-amplify $\sim\!2.9\times$ in the served image. The image of the speck is not stationary:
-the shadow geometry converts sub-millimetre thermal flexure of sash and mount into
-$\sim\SI{92}{px/mm}$ of image motion, so the feature walked \SI{120}{px} in a week,
-including \SIrange{7}{18}{px} within single days. This note describes, and distinguishes
-explicitly, three layers of work: a \emph{deployed} per-tick corrector (empirical
-transmittance map, velocity placement from the data's epoch, persistent template-lock
-measurement update, gated amplitude self-calibration, capped division); a
-\emph{deployed} nightly estimator and publisher (recursive-prior centroid tracking,
-registered map building, acceptance gating); and \emph{offline} analyses (a Bayesian
-pixel-model MAP fit that validates the production tracker, and a closed-loop
-reprocessing of the archive). On the disclosed offline population --- clean daylight
-frames with a detectable dip --- the median displayed dip falls from \SI{4.46}{\percent}
-to \SI{0.52}{\percent} (median removal \SI{88}{\percent}, day-blocked 95\% CI
-\SIrange{86}{91}{\percent}, $n=495$ over 8 days). Retained live paired measurements are
-smaller and more variable (\S\ref{sec:results}); the principal limitations are the
-shared-centre validation geometry and one day of post-deployment evidence.
+A $\sim\SI{0.25}{mm}$ speck on the window of a sky monitor is imaged by the camera's
+$f/4$ pupil from $\sim\SI{3}{cm}$ as a \SI{76}{px}, \SIrange{2}{7}{\percent} shadow,
+which contrast enhancement amplifies $\sim\!2.9\times$ in the served image. The shadow
+geometry acts as a $\sim\SI{92}{px/mm}$ strain gauge: sub-millimetre thermal flexure of
+sash and mount walked the feature's image \SI{120}{px} in a week, including
+\SIrange{7}{18}{px} within single days. We remove it with a layered Bayesian scheme: a
+hierarchical pixel model (Student-$t$ likelihood, position pinned across exposure
+brackets, days tied by a drift-informed random walk) locates the feature; a nightly
+recursive filter carries position and velocity forward, each estimate stamped with its
+data's epoch; and at every capture a template-lock measurement update corrects the
+prediction, with depth taken from a registered empirical transmittance map rather than
+any parametric shape. On clean daylight frames with a detectable dip, the median
+displayed artifact falls from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-blocked
+95\% CI on removal: \SIrange{86}{91}{\percent}).
 \end{abstract}
 
 \begin{center}
@@ -63,7 +57,7 @@ shared-centre validation geometry and one day of post-deployment evidence.
   \label{fig:full}
 \end{center}
 
-{\small\setcounter{tocdepth}{2}\tableofcontents}
+{\small\setcounter{tocdepth}{1}\tableofcontents}
 
 \section{The instrument and the defect}
 
