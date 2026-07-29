@@ -35,30 +35,20 @@ citations and errors.}}
 
 \begin{abstract}
 \noindent
-Every camera that looks through glass eventually encounters a speck of dirt. A grain
-on a window in Porter Hall at Carnegie Mellon --- consistent with 0.25 millimetres
-of opaque debris, three centimetres before a sky monitor's $f/4$ pupil --- prints a
-76-pixel shadow on every image, and, measured closely enough, becomes a
-single-particle optics experiment. With the pupil 7--10 times wider than the grain's
-forward-diffraction lobe, the system operates in the wide-acceptance limit of the
-extinction paradox: shadow depth sits at the projected-area value (4.5--5.4 per cent
-against $\approx$5.2), the forward-scattered half recollected rather than registered
-as extinction, and recollected blue scatter approximately predicts the green channel
-from blue and red alone --- measured extinction is a property of the
-instrument--particle pair, not of the particle. The shadow also acts as an
-(as yet uncalibrated) strain gauge for millimetre-scale flexure of the window sash;
-no motion of the grain itself is required. The geometry reproduces the dust-shadow
-optics developed for the Mars rovers' cameras, extended with per-channel photometry
-and continuous tracking: to our knowledge no prior work continuously tracks the
-apparent image position of a single adherent near-lens occluder. An autonomous
-pipeline --- a recursive, gated tracker validated offline against a Bayesian pixel
-model --- erases the artifact from served images (median dip 4.5 to 0.5 per cent,
-retrospectively evaluated; live at
-\href{https://proofsandreasons.io}{proofsandreasons.io}), and motivates
-physics-first handling of the soiled, distrusted cameras of self-driving cars. To
-provide information to the wider scientific community, raw data, materials, methods,
-and analysis code are available at
-\href{https://github.com/simon-dedeo/cmu-skyline-monitor}{github.com/simon-dedeo/cmu-skyline-monitor}.
+A grain on a Porter Hall window at Carnegie Mellon --- consistent with 0.25
+millimetres of debris, three centimetres before a sky monitor's $f/4$ pupil ---
+prints a 76-pixel shadow that is a single-particle optics experiment in disguise.
+Shadow depth sits at the projected-area value, the extinction paradox's
+forward-scattered half recollected rather than registered; recollected blue scatter
+approximately predicts the green channel; and the shadow resolves millimetre-scale
+sash flexure (uncalibrated). The geometry reproduces the Mars rovers' dust-shadow
+optics; to our knowledge no prior work continuously tracks the apparent image
+position of a single adherent near-lens occluder. An autonomous, offline-validated
+tracker erases the artifact (median dip 4.5 to 0.5 per cent, retrospective; live at
+\href{https://proofsandreasons.io}{proofsandreasons.io}), motivating physics-first
+handling of self-driving cars' soiled cameras. To provide information to the wider
+scientific community, raw data, materials, methods, and analysis code are available
+at \href{https://github.com/simon-dedeo/cmu-skyline-monitor}{github.com/simon-dedeo/cmu-skyline-monitor}.
 \end{abstract}
 
 \begin{center}

@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex SPOT_FIT"] 1785294356.81203 "SPOT_FIT.aux" "SPOT_FIT.bbl" "SPOT_FIT" 1785294392.2635 0
+["bibtex SPOT_FIT"] 1785294847.95442 "SPOT_FIT.aux" "SPOT_FIT.bbl" "SPOT_FIT" 1785294849.04307 0
   "./refs.bib" 1785291537.33153 14485 62dae15532e3644b80f2ebaef1d7b640 ""
   "/opt/local/share/texmf-texlive/bibtex/bst/natbib/unsrtnat.bst" 1520403979 24550 a41a6405f4de768c43e871d9fbce2bc8 ""
-  "SPOT_FIT.aux" 1785294392.09499 17830 ce181b9b999400c3e2f50f7e792baef6 "pdflatex"
+  "SPOT_FIT.aux" 1785294848.86086 17829 55040f26798bfd62b75a5b24fe0f70e7 "pdflatex"
   (generated)
   "SPOT_FIT.bbl"
   "SPOT_FIT.blg"
   (rewritten before read)
-["pdflatex"] 1785294391.29315 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785294392.26362 0
-  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785294391.13114 61246 2fe96e98dba2e9617724d27dabfcfa15 ""
+["pdflatex"] 1785294848.0213 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785294849.0432 0
+  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785294846.62457 60529 34c2768686e635beb6721b577451bf66 ""
   "/opt/local/etc/texmf/texmf.cnf" 1781394635.23998 41383 e2d01f660d20f5e7c07ea7d1b7d1a538 ""
   "/opt/local/share/texmf-texlive/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1520408187 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/opt/local/share/texmf-texlive/fonts/map/fontname/texfonts.map" 1677027285 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -219,11 +219,11 @@
   "/opt/local/share/texmf-texlive/tex/latex/xcolor/xcolor.sty" 1738800804 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "/opt/local/var/db/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781395727 5541357 bc9bda23ab9864778b6c0bfe4c64488b ""
   "/opt/local/var/db/texmf/web2c/pdftex/pdflatex.fmt" 1781394816 3637580 1d37c6ff43be158676db23520b4cde8e ""
-  "SPOT_FIT.aux" 1785294392.09499 17830 ce181b9b999400c3e2f50f7e792baef6 "pdflatex"
-  "SPOT_FIT.bbl" 1785294356.86987 13003 d92d67b7209a993f4f87a176fd561311 "bibtex SPOT_FIT"
-  "SPOT_FIT.out" 1785294392.09616 2188 d26a8abed2d25ec3cf0207940fd026e8 "pdflatex"
-  "SPOT_FIT.tex" 1785294391.13114 61246 2fe96e98dba2e9617724d27dabfcfa15 ""
-  "SPOT_FIT.toc" 1785294392.09631 3577 539ee4af6aab652ce366260f8435ed8d "pdflatex"
+  "SPOT_FIT.aux" 1785294848.86086 17829 55040f26798bfd62b75a5b24fe0f70e7 "pdflatex"
+  "SPOT_FIT.bbl" 1785294848.0186 13003 d92d67b7209a993f4f87a176fd561311 "bibtex SPOT_FIT"
+  "SPOT_FIT.out" 1785294848.86201 2188 d26a8abed2d25ec3cf0207940fd026e8 "pdflatex"
+  "SPOT_FIT.tex" 1785294846.62457 60529 34c2768686e635beb6721b577451bf66 ""
+  "SPOT_FIT.toc" 1785294848.86216 3576 369947498fb4078210e4304ef01eb69e "pdflatex"
   "figs/after.png" 1785188290.37017 617309 355dd71df8781bd8153fc61208613fc2 ""
   "figs/before.png" 1785188290.36737 626977 922b9c5c96400de0d3adebe8e2d4a1e5 ""
   "figs/diff.png" 1785281652 307403 9b87d602f39a30a460446c30b30041d3 ""
