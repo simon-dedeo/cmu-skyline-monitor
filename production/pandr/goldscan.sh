@@ -45,5 +45,8 @@ $GP
 EOF
   cp "$SCAN" .goldpeak_frame.jpg
   cp "$SCAN" "archive/$DAY/peak_${G_WHICH}.jpg"     # local record of this window's best
-  log "new peak ($G_WHICH, blend $G_BLEND) saved locally — upload at window close"
+  # publish IMMEDIATELY (Simon 2026-07-28): the peak goes to the front page and the
+  # index as soon as it is taken; window close re-publishes the final state (idempotent)
+  bash gold_publish.sh || log "live publish helper failed"
+  log "new peak ($G_WHICH, blend $G_BLEND) saved + published live"
 fi
