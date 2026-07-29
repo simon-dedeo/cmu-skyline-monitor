@@ -30,7 +30,7 @@ import solar                                   # sun_elevation() for the caption
 STATE = os.path.join(HERE, ".golden_peak.json")
 ROI_TOP = 0.62          # top 62% (sky + upper façades) for the golden warm/sat/blend stats
 BRIGHT_FLOOR = 50       # full-frame mean; reject near-black twilight frames
-TARGET_ELEV = {"morning": -1.0, "evening": -1.0}   # both windows, from the golden-hour row review 2026-07-26 (was morning 3.46 / evening -0.63)
+TARGET_ELEV = {"morning": 1.0, "evening": -1.0}   # Simon, final golden-hour review 2026-07-28 (was both -1.0 from 07-26; before that 3.46/-0.63)
 
 
 def hue_name(deg):
