@@ -34,24 +34,23 @@
 \noindent
 Every camera that looks through glass eventually inherits a speck of dirt. A
 0.25-millimetre grain on the window of a Pittsburgh sky monitor, three centimetres
-before an $f/4$ pupil, prints a 76-pixel shadow on every image; measured closely
-enough, it becomes a single-particle optics experiment. Because the pupil is 7--10
-times wider than the grain's forward-diffraction lobe, the camera operates deep in
-the geometric limit of the extinction paradox: the shadow's depth matches the
-grain's projected area (4.5--5.4 per cent observed, 5.2 predicted), excluding the
-paradoxical factor of two, and the colour channels --- each sampling a different
-ratio of scattering lobe to collection cone --- show a shallower, wider shadow in
-blue at wavelength-flat total deficit, predicting the green channel from blue and
-red alone. Measured extinction is thus a property of the instrument--particle pair,
-not of the particle. The shadow is also a strain gauge: at 92 pixels per millimetre
-it resolves 1.3 millimetres of week-scale thermal flexure of the window sash; the
-grain itself never moves. The same geometry replicates, on an office window, the
-dust-shadow optics of the Mars rovers' cameras at nearly the same particle-to-pupil
-regime; the continuous tracking of a single occluder migrating across an optic, and
-its per-colour photometry, are to our knowledge firsts. An autonomous Bayesian
-pipeline exploits these measurements to erase the artifact from the served images
-(median dip 4.5 to 0.5 per cent), live at
-\href{https://proofsandreasons.io}{proofsandreasons.io}.
+before an $f/4$ pupil, prints a 76-pixel shadow on every image --- and, measured
+closely enough, becomes a single-particle optics experiment. With the pupil 7--10
+times wider than the grain's forward-diffraction lobe, the camera sits deep in the
+geometric limit of the extinction paradox: shadow depth matches projected area
+(4.5--5.4 per cent observed, 5.2 predicted), excluding the paradoxical factor of
+two, and the shallower, wider blue shadow of preferentially recollected
+short-wavelength scatter predicts the green channel from blue and red alone ---
+measured extinction belongs to the instrument--particle pair, not the particle. At
+92 pixels per millimetre the shadow is also a strain gauge, resolving 1.3
+millimetres of sash flexure; the grain never moves. The optics replicate the Mars
+rovers' dust-shadow model at nearly our particle-to-pupil regime. To our knowledge
+no prior work continuously tracks the position of a single adherent occluder
+migrating across the optic; an autonomous Bayesian pipeline does so here, erasing
+the artifact from served images (median dip 4.5 to 0.5 per cent; live at
+\href{https://proofsandreasons.io}{proofsandreasons.io}) --- a physics-first
+alternative for self-driving cars, whose soiled cameras today are detected and
+distrusted rather than modelled and corrected.
 \end{abstract}
 
 \begin{center}
