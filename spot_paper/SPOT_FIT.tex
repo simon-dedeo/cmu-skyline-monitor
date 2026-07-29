@@ -5,6 +5,7 @@
 \usepackage{booktabs}
 \usepackage{siunitx}
 \usepackage[table]{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,
@@ -63,7 +64,8 @@ displayed artifact falls from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-bloc
 
 A \SI{4}{K} camera (\num{3840}$\times$\num{2160}) images the CMU skyline through a fixed
 window. Every five minutes it captures a three-exposure bracket, fused by Mertens
-exposure fusion and finished with a local-contrast pass (CLAHE) plus global saturation
+exposure fusion \citep{mertens2009exposure} and finished with a local-contrast pass
+(CLAHE \citep{pizer1987adaptive,zuiderveld1994clahe}) plus global saturation
 and contrast curves. Brackets are archived losslessly, so all photometry runs on raw
 frames; the correction is applied to the raw brackets \emph{before} fusion, because the
 enhancement stage amplifies any residual dip roughly $2.9\times$, scene-dependently. The camera (Elgato Facecam 4K) is an
@@ -91,7 +93,9 @@ distinctions and correctly drew a reviewer's objection.
 \subsection{Photometric model}
 
 Per colour channel, in linear light, the blemish maps the background radiance it occludes
-as an affine transformation,
+as an affine transformation --- the standard model for a defocused contaminant layer,
+which both attenuates the scene and scatters stray light toward the sensor
+\citep{gu2009dirty} ---
 \begin{equation}
   \Lsp = t\,\Lbg + s,
   \qquad\text{so the fractional dip}\qquad
@@ -133,12 +137,13 @@ $(u,v,u^2,uv,v^2)$ standardised per stack, and
    + \tfrac{(v_i-c_y)^2}{\sigma_y^2}\Big],
 \end{equation*}
 with priors $c_x, c_y \sim \mathcal N(0, 30)$ px about the drift-predicted centre and a
-non-centred random walk of scale $\tau$ px/night tying days;
+non-centred random walk of scale $\tau$ px/night tying days
+\citep{papaspiliopoulos2007parametrization,betancourt2015hmc};
 $\sigma_{x,y} \sim \mathcal N(33, 7)$ bounded to $[15,60]$ px;
 $\rho \sim \mathcal N(0, 0.35)$ on $[-0.85, 0.85]$;
 $A_k \sim \mathcal N(0.02, 0.012)$ bounded to $[0.002, 0.10]$ (a positive floor, see
 below); Student-$t$ errors ($\nu \sim$ Gamma, $\nu \ge 2$) keep cloud edges from
-dragging the centre. Exact code, bounds, seeds and the multi-start command lines are in
+dragging the centre \citep{lange1989robust}. Exact code, bounds, seeds and the multi-start command lines are in
 \code{spot\_paper/code/}. Three structural choices carry the statistical weight:
 
 \begin{itemize}
@@ -156,11 +161,13 @@ dragging the centre. Exact code, bounds, seeds and the multi-start command lines
   what identifies the blob against the background polynomial.
 \end{itemize}
 
-Identifiability requires care rather than luck: the background basis must be standardised
+Identifiability requires care rather than luck \citep{gelman2020workflow}: the
+background basis must be standardised
 per stack, the blob width bounded well below the window half-width (a blob as wide as its
 window \emph{is} a background quadratic), and the amplitude given a positive floor (at
 $A=0$ the position has no likelihood gradient and reverts to its prior). With those
-constraints, MAP estimation (CmdStan L-BFGS, multiple starts, best objective kept)
+constraints, MAP estimation (CmdStan \citep{carpenter2017stan} L-BFGS
+\citep{liu1989lbfgs}, multiple starts, best objective kept)
 recovers the position in seconds. The output is a \emph{MAP state}, not a posterior ---
 the posterior is never sampled --- and the trust decision is made by an acceptance gate
 (\S\ref{sec:autonomy}) rather than by a credible interval. The fitted half-depth radius, \SI{37.8}{px}, independently
@@ -169,10 +176,11 @@ matches the \SI{38.2}{px} measured by a completely separate empirical estimator.
 \subsection{A recursive filter with honest epochs}
 \label{sec:filter}
 
-For unattended operation the nightly fit is a filter: tonight's prior is last night's
-posterior propagated by the blemish's own observed velocity (self-calibrating --- no
-parallax constant, no scene-drift proxy), with implausible steps and low-confidence fits
-rejected in favour of carrying the previous state forward.
+For unattended operation the nightly fit is a filter in the classical
+predict--update sense \citep{kalman1960,sarkka2023filtering}: tonight's prior is last
+night's posterior propagated by the blemish's own observed velocity (self-calibrating
+--- no parallax constant, no scene-drift proxy), with implausible steps and
+low-confidence fits rejected in favour of carrying the previous state forward.
 
 One discipline deserves emphasis because everything downstream depends on it:
 \textbf{an estimate carries its data's epoch, not its run date}. The nightly position is
@@ -207,7 +215,10 @@ only to \emph{locate}; depth and shape come from an empirical map,
      \frac{I_{j,c}(\mathbf{r})}{B_{j,c}(\mathbf{r})},
 \end{equation}
 the per-channel median, over selected frames, of each frame divided by its own quadratic
-background, in linear light. Moving cloud averages out; fixed attenuation survives. Four
+background, in linear light --- in effect a defect-local flat field
+\citep{howell2006handbook}, built by registered, quality-selected stacking in the same
+spirit as astronomical lucky imaging \citep{law2006lucky}. Moving cloud averages out;
+fixed attenuation survives. Four
 details matter:
 
 \begin{itemize}
@@ -265,8 +276,8 @@ every tick the corrector chains three estimators, each bounded by the one below 
   total displacement capped at \SI{40}{px}.
 \item \textbf{Persistent template lock} --- the measurement update. The corrector
   cross-correlates the frame's own dip (frame divided by its local background) against
-  the map's dip template within $\pm\SI{25}{px}$; a decisive lock (normalised
-  correlation $\ge 0.45$, clean surrounding ring) snaps the map onto the measured
+  the map's dip template within $\pm\SI{25}{px}$ \citep{lewis1995ncc}; a decisive lock
+  (normalised correlation $\ge 0.45$, clean surrounding ring) snaps the map onto the measured
   position \emph{and is saved}. A lock must also be unambiguous: the runner-up
   correlation peak (outside the winner's neighbourhood) must trail by a margin, so a
   cloud edge or contrail that ties the blemish cannot capture the tracker. The next tick
@@ -299,7 +310,9 @@ The map records depth at the reference exposure. Two mechanisms adapt it per fra
 \end{itemize}
 
 The correction itself divides rather than reconstructs: $I \mapsto I/\tilde T$ with
-$\tilde T$ feathered to unity outside the footprint. There is deliberately \emph{no
+$\tilde T$ feathered to unity outside the footprint --- possible precisely because a
+defocused occluder's artifact is low-frequency and multiplicative, so scene radiance
+is recoverable pointwise \citep{gu2009dirty}. There is deliberately \emph{no
 scene-referenced cap}: a clamp referenced to the observed image or a local sky fit eats
 the correction exactly where a bright cloud passes behind the blemish (the dimmed cloud
 becomes the reference), and an earlier pixelwise version also silently deleted the upper
@@ -326,8 +339,8 @@ amplification.
 \label{sec:physics}
 
 \paragraph{The image's motion is two-process --- but the object need not move.}
-Step-level regression of daily blemish-image motion on scene drift (phase correlation on
-the building band) gives
+Step-level regression of daily blemish-image motion on scene drift (phase correlation
+\citep{kuglin1975phase} on the building band) gives
 $\Delta x_{\text{image}} \approx 0.93\,\Delta x_{\text{scene}} + \epsilon$ with
 $\operatorname{med}|\epsilon| \approx \SI{11}{px/day}$: camera rotation passes through
 at unit gain, plus an independent component --- episodic, up to \SI{27}{px/day},
@@ -592,18 +605,26 @@ glass}.
 
 \paragraph{The solve.} A pixel viewing the distant scene collects a ray bundle that
 crosses the pane as a patch of diameter $\approx a\,(1-d/F)$, where $d$ is the
-pupil-to-pane distance and $F\approx\SI{0.5}{m}$ the fixed focus distance. A speck of
+pupil-to-pane distance and $F\approx\SI{0.5}{m}$ the fixed focus distance --- the
+circle-of-confusion geometry of any defocused imaging system
+\citep{goodman2017fourier,potmesil1981lens}. A speck of
 size $s$ removes the fraction $(s/a)^2$ of a pixel's light and images with full width
 $\approx\big(s + a(1-d/F)\big)/d$. The measured depth (\SIrange{3}{7}{\percent}) gives
 $s \approx 0.22a \approx \SI{0.24}{mm}$; the measured \SI{76}{px} FWHM then requires
-$d \approx \SIrange{30}{35}{mm}$. Of that, at most $\sim\SI{13}{mm}$ is air gap and
+$d \approx \SIrange{30}{35}{mm}$. (That a thin occluder far from focus prints as a
+low-frequency attenuation pattern --- the occluder convolved with the aperture --- is
+the standard image-formation model for near-lens contaminants
+\citep{gu2009dirty,zhou2007dust,willson2005dust,gu2007dirtyglass}; multi-frame parallax
+approaches to removing such occluders exist when the camera moves
+\citep{xue2015obstruction}, which ours, deliberately, does not.) Of that, at most $\sim\SI{13}{mm}$ is air gap and
 glass, implying the entrance pupil sits $\sim\SI{2}{cm}$ behind the front of the lens
 --- deep, but characteristic of short-focal-length inverted-telephoto designs, and a
 checkable prediction. The faster-than-Gaussian wings (Figure~\ref{fig:profile}) are the
 compact-support signature of exactly this: a hard-edged occluder convolved with a
 hard-edged pupil. The neutral colour (integrated deficits equal across channels to
-\SI{8}{\percent}; the red channel deeper but narrower, i.e.\ chromatic defocus, not
-pigment) fits nondescript grey debris. The two or three fainter compact features
+\SI{8}{\percent}; the red channel deeper but narrower --- a point-spread difference,
+not pigment, traced below to wavelength-dependent forward scattering) fits nondescript
+grey debris. The two or three fainter compact features
 elsewhere on the pane are siblings: other motes.
 
 \paragraph{Why the image moves.} The same geometry that blurs the speck amplifies
@@ -642,12 +663,29 @@ within 8\% across all three channels. The depth/width pattern is \emph{not} lens
 chromatism --- for this geometry every axial mechanism (normal dispersion, achromat
 secondary spectrum, edge diffraction at Fresnel number $\sim$4, sensor carrier
 diffusion) predicts the red shadow \emph{broader}, the wrong sign. What produces
-deeper-and-narrower red at constant integral is the speck itself: micron-scale surface
-texture scatters short wavelengths at small angles, and scattered blue that stays within
-the pupil's acceptance re-enters the bundles --- refilling the shadow core (blue
+deeper-and-narrower red at constant integral is the speck itself, through a mechanism
+with a long history in particle optics: \emph{the apparent extinction of a particle
+depends on how much of its near-forward scattered light the measuring aperture
+recollects}. A particle large compared to the wavelength ($\pi s/\lambda \sim 10^3$
+here) removes \emph{twice} its geometric blocking, half of it deposited in a narrow
+forward diffraction lobe --- the ``extinction paradox''
+\citep{vandehulst1981light,bohren1983absorption,berg2011extinction} --- and any
+detector of finite acceptance recovers part of that lobe and registers correspondingly
+less extinction, a bias quantified for transmissometry by \citet{deepak1978forward}.
+Our geometry sets a generous acceptance: light scattered at the pane by less than
+$\theta_{\mathrm{acc}} \approx a/d \approx \SI{34}{mrad}$ re-enters the pupil. The
+speck's whole-body diffraction lobe ($\theta \sim \lambda/s \approx \SI{2}{mrad}$)
+lies entirely inside that cone --- which is why the core reads simple geometric
+blocking, $(s/a)^2$, in the first place. Scattering from micron-scale surface texture,
+however, spreads into lobes of width $\theta \sim \lambda/d_{\mathrm f}$ for feature
+size $d_{\mathrm f}$; only the fraction falling inside the acceptance cone,
+$\propto (\theta_{\mathrm{acc}}\, d_{\mathrm f}/\lambda)^2$, is recollected, and that
+fraction is $(610/460)^2 \approx 1.8\times$ larger for blue than for red. The
+recollected blue re-enters the ray bundles --- refilling the shadow core (blue
 shallower), feathering its skirt (blue wider, by $\sim\SI{30}{\micro m}$ at the pane),
-and slightly lowering the blue integral, exactly as measured. Red, barely scattered,
-casts the cleanest geometric shadow. The blur-invariant total extinction remains
+and slightly lowering the blue integral, exactly as measured. Red, its scattering
+spread over the widest lobes, is recollected least and casts the cleanest geometric
+shadow. The blur-invariant total extinction remains
 \textbf{neutral to $\pm 8\%$}. That bound excludes strongly pigmented candidates: rust ($\times$ several
 in the blue), organic tar or sap, pollen, chlorophyll debris. What remains is the
 unglamorous family that grey, wavelength-flat extinction describes: mineral dust,
@@ -685,6 +723,7 @@ corrupted bundles, template-lock distractors) is specified in the 2026-07-28 rev
 remains future work.
 
 \section{Limitations}
+\label{sec:limitations}
 
 \begin{itemize}
 \item Live post-deployment evidence is one mixed-conditions day; the offline table is
@@ -705,5 +744,8 @@ remains future work.
   cannot be reprocessed; they are labelled rather than silently mixed with reprocessed
   frames.
 \end{itemize}
+
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
 
 \end{document}
