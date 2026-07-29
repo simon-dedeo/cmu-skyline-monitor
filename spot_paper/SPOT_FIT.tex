@@ -10,10 +10,10 @@
 \usepackage{subcaption}
 \usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,
             citecolor=blue!55!black,
-            pdftitle={Tracking and Removing a Migrating Window Blemish},
+            pdftitle={Pittsburgh in a Grain of Sand},
             pdfauthor={CMU Skyline Monitor (Simon DeDeo, with Claude)},
             pdfsubject={Bayesian estimation and autonomous correction of a near-field optical defect},
-            pdfkeywords={Bayesian inference, image correction, defocus optics, autonomous systems}]{hyperref}
+            pdfkeywords={Bayesian inference, image correction, defocus optics, extinction paradox, autonomous systems}]{hyperref}
 \usepackage{microtype}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
@@ -22,29 +22,41 @@
 \newcommand{\Lsp}{L_{\mathrm{sp}}}
 \newcommand{\code}[1]{\texttt{\small #1}}
 
-\title{\bfseries Tracking and Removing a Migrating Window Blemish}
+\title{\bfseries Pittsburgh in a Grain of Sand\\[0.4em]
+  \large\mdseries Tracking and removing a migrating window blemish}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v8)}
+\date{2026-07-28 (v10)}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
 \noindent
-A $\sim\SI{0.25}{mm}$ speck on the window of a sky monitor is imaged by the camera's
-$f/4$ pupil from $\sim\SI{3}{cm}$ as a \SI{76}{px}, \SIrange{2}{7}{\percent} shadow,
-which contrast enhancement amplifies $\sim\!2.9\times$ in the served image. The shadow
-geometry acts as a $\sim\SI{92}{px/mm}$ strain gauge: sub-millimetre thermal flexure of
-sash and mount walked the feature's image \SI{120}{px} in a week, including
-\SIrange{7}{18}{px} within single days. We remove it with a layered Bayesian scheme: a
-hierarchical pixel model (Student-$t$ likelihood, position pinned across exposure
-brackets, days tied by a drift-informed random walk) locates the feature; a nightly
-recursive filter carries position and velocity forward, each estimate stamped with its
-data's epoch; and at every capture a template-lock measurement update corrects the
-prediction, with depth taken from a registered empirical transmittance map rather than
-any parametric shape. On clean daylight frames with a detectable dip, the median
-displayed artifact falls from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-blocked
-95\% CI on removal: \SIrange{86}{91}{\percent}).
+A $\sim\SI{0.25}{mm}$ speck on the window of a Pittsburgh sky monitor is imaged by the
+camera's $f/4$ pupil from $\sim\SI{3}{cm}$ as a \SI{76}{px},
+\SIrange{2}{7}{\percent} shadow, amplified $\sim\!2.9\times$ by contrast enhancement
+in the served image. The shadow geometry is a $\sim\SI{92}{px/mm}$ strain gauge:
+sub-millimetre thermal flexure of sash and mount walked the feature's image
+\SI{120}{px} in a week, including \SIrange{7}{18}{px} within single days --- to our
+knowledge the first continuously tracked migration of a single adherent occluder
+across an optic. A layered Bayesian scheme removes it: a hierarchical pixel model
+(Student-$t$ likelihood, position pinned across exposure brackets, days tied by a
+drift-informed random walk) locates the feature; a nightly recursive filter carries
+position and velocity forward, each estimate stamped with its data's epoch; and at
+every capture a template-lock measurement update corrects the prediction, with depth
+taken from a registered empirical transmittance map rather than any parametric shape.
+On clean daylight frames with a detectable dip, the median displayed artifact falls
+from \SI{4.5}{\percent} to \SI{0.5}{\percent} (day-blocked 95\% CI on removal:
+\SIrange{86}{91}{\percent}). Measured this closely, the grain doubles as a
+single-particle optics experiment: the pupil stands $7$--$10\times$ wider than the
+speck's forward-diffraction lobe, so the apparatus operates deep in the geometric
+limit --- measured core depths (\SIrange{4.5}{5.4}{\percent}) match the projected-area
+prediction ($5.2\%$) and exclude the extinction-paradox factor of two --- while the
+colour channels, each sampling a different lobe-to-acceptance ratio, print the
+shallower-wider blue shadow of preferentially recollected short-wavelength scatter at
+wavelength-flat integrated deficit: an operational, three-band demonstration that
+measured extinction is a property of the instrument--particle pair, not of the
+particle alone.
 \end{abstract}
 
 \begin{center}

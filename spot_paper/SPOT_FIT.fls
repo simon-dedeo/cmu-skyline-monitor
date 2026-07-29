@@ -263,6 +263,7 @@ INPUT /opt/local/share/texmf-texlive/tex/latex/microtype/mt-cmr.cfg
 INPUT /opt/local/share/texmf-texlive/tex/latex/microtype/mt-cmr.cfg
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmr17.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx12.tfm
+INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmr12.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmr8.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmr6.tfm
@@ -330,7 +331,6 @@ INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmti10.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/jknappen/ec/tcrm1095.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmtt10.tfm
-INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx8.tfm
 INPUT /opt/local/share/texmf-texlive/fonts/tfm/public/cm/cmbx6.tfm
