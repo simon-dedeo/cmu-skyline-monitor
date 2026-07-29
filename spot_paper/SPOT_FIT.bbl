@@ -1,0 +1,226 @@
+\begin{thebibliography}{36}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Mertens et~al.(2009)Mertens, Kautz, and Van~Reeth]{mertens2009exposure}
+Tom Mertens, Jan Kautz, and Frank Van~Reeth.
+\newblock Exposure fusion: A simple and practical alternative to high dynamic range photography.
+\newblock \emph{Computer Graphics Forum}, 28\penalty0 (1):\penalty0 161--171, 2009.
+\newblock \doi{10.1111/j.1467-8659.2008.01171.x}.
+
+\bibitem[Pizer et~al.(1987)Pizer, Amburn, Austin, Cromartie, Geselowitz, Greer, ter Haar~Romeny, Zimmerman, and Zuiderveld]{pizer1987adaptive}
+Stephen~M. Pizer, E.~Philip Amburn, John~D. Austin, Robert Cromartie, Ari Geselowitz, Trey Greer, Bart~M. ter Haar~Romeny, John~B. Zimmerman, and Karel Zuiderveld.
+\newblock Adaptive histogram equalization and its variations.
+\newblock \emph{Computer Vision, Graphics, and Image Processing}, 39\penalty0 (3):\penalty0 355--368, 1987.
+\newblock \doi{10.1016/S0734-189X(87)80186-X}.
+
+\bibitem[Zuiderveld(1994)]{zuiderveld1994clahe}
+Karel Zuiderveld.
+\newblock Contrast limited adaptive histogram equalization.
+\newblock In \emph{Graphics Gems IV}, pages 474--485. Academic Press, 1994.
+\newblock \doi{10.1016/B978-0-12-336156-1.50061-6}.
+
+\bibitem[Gu et~al.(2009)Gu, Ramamoorthi, Belhumeur, and Nayar]{gu2009dirty}
+Jinwei Gu, Ravi Ramamoorthi, Peter~N. Belhumeur, and Shree~K. Nayar.
+\newblock Removing image artifacts due to dirty camera lenses and thin occluders.
+\newblock \emph{ACM Transactions on Graphics}, 28\penalty0 (5), December 2009.
+\newblock \doi{10.1145/1618452.1618490}.
+\newblock Proc. SIGGRAPH Asia 2009.
+
+\bibitem[Papaspiliopoulos et~al.(2007)Papaspiliopoulos, Roberts, and Sk{\"o}ld]{papaspiliopoulos2007parametrization}
+Omiros Papaspiliopoulos, Gareth~O. Roberts, and Martin Sk{\"o}ld.
+\newblock A general framework for the parametrization of hierarchical models.
+\newblock \emph{Statistical Science}, 22\penalty0 (1):\penalty0 59--73, 2007.
+\newblock \doi{10.1214/088342307000000014}.
+
+\bibitem[Betancourt and Girolami(2015)]{betancourt2015hmc}
+Michael Betancourt and Mark Girolami.
+\newblock Hamiltonian {Monte Carlo} for hierarchical models.
+\newblock In Satyanshu~K. Upadhyay, Umesh Singh, Dipak~K. Dey, and Appaia Loganathan, editors, \emph{Current Trends in Bayesian Methodology with Applications}, pages 79--101. Chapman and Hall/CRC, Boca Raton, FL, 2015.
+\newblock \doi{10.1201/b18502-5}.
+\newblock Also available as arXiv:1312.0906.
+
+\bibitem[Lange et~al.(1989)Lange, Little, and Taylor]{lange1989robust}
+Kenneth~L. Lange, Roderick J.~A. Little, and Jeremy M.~G. Taylor.
+\newblock Robust statistical modeling using the $t$ distribution.
+\newblock \emph{Journal of the American Statistical Association}, 84\penalty0 (408):\penalty0 881--896, 1989.
+\newblock \doi{10.1080/01621459.1989.10478852}.
+
+\bibitem[Gelman et~al.(2020)Gelman, Vehtari, Simpson, Margossian, Carpenter, Yao, Kennedy, Gabry, B{\"u}rkner, and Modr{\'a}k]{gelman2020workflow}
+Andrew Gelman, Aki Vehtari, Daniel Simpson, Charles~C. Margossian, Bob Carpenter, Yuling Yao, Lauren Kennedy, Jonah Gabry, Paul-Christian B{\"u}rkner, and Martin Modr{\'a}k.
+\newblock Bayesian workflow, 2020.
+\newblock arXiv:2011.01808.
+
+\bibitem[Carpenter et~al.(2017)Carpenter, Gelman, Hoffman, Lee, Goodrich, Betancourt, Brubaker, Guo, Li, and Riddell]{carpenter2017stan}
+Bob Carpenter, Andrew Gelman, Matthew~D. Hoffman, Daniel Lee, Ben Goodrich, Michael Betancourt, Marcus Brubaker, Jiqiang Guo, Peter Li, and Allen Riddell.
+\newblock Stan: A probabilistic programming language.
+\newblock \emph{Journal of Statistical Software}, 76\penalty0 (1):\penalty0 1--32, 2017.
+\newblock \doi{10.18637/jss.v076.i01}.
+
+\bibitem[Liu and Nocedal(1989)]{liu1989lbfgs}
+Dong~C. Liu and Jorge Nocedal.
+\newblock On the limited memory {BFGS} method for large scale optimization.
+\newblock \emph{Mathematical Programming}, 45:\penalty0 503--528, 1989.
+\newblock \doi{10.1007/BF01589116}.
+
+\bibitem[Kalman(1960)]{kalman1960}
+R.~E. Kalman.
+\newblock A new approach to linear filtering and prediction problems.
+\newblock \emph{Journal of Basic Engineering (Transactions of the ASME, Series D)}, 82\penalty0 (1):\penalty0 35--45, 1960.
+\newblock \doi{10.1115/1.3662552}.
+
+\bibitem[S{\"a}rkk{\"a} and Svensson(2023)]{sarkka2023filtering}
+Simo S{\"a}rkk{\"a} and Lennart Svensson.
+\newblock \emph{Bayesian Filtering and Smoothing}.
+\newblock Institute of Mathematical Statistics Textbooks. Cambridge University Press, Cambridge, second edition, 2023.
+\newblock ISBN 978-1-108-92664-5.
+\newblock \doi{10.1017/9781108917407}.
+
+\bibitem[Howell(2006)]{howell2006handbook}
+Steve~B. Howell.
+\newblock \emph{Handbook of CCD Astronomy}.
+\newblock Cambridge Observing Handbooks for Research Astronomers. Cambridge University Press, Cambridge, 2 edition, 2006.
+\newblock ISBN 978-0-521-85215-9.
+
+\bibitem[Law et~al.(2006)Law, Mackay, and Baldwin]{law2006lucky}
+N.~M. Law, C.~D. Mackay, and J.~E. Baldwin.
+\newblock Lucky imaging: high angular resolution imaging in the visible from the ground.
+\newblock \emph{Astronomy \& Astrophysics}, 446\penalty0 (2):\penalty0 739--745, 2006.
+\newblock \doi{10.1051/0004-6361:20053695}.
+
+\bibitem[Lewis(1995)]{lewis1995ncc}
+J.~P. Lewis.
+\newblock Fast template matching.
+\newblock In \emph{Vision Interface 95}, pages 120--123, Quebec City, Canada, 1995. Canadian Image Processing and Pattern Recognition Society.
+\newblock Expanded and corrected version: \emph{Fast Normalized Cross-Correlation}, Industrial Light \& Magic, \url{http://scribblethink.org/Work/nvisionInterface/nip.pdf}.
+
+\bibitem[Kuglin and Hines(1975)]{kuglin1975phase}
+C.~D. Kuglin and D.~C. Hines.
+\newblock The phase correlation image alignment method.
+\newblock In \emph{Proceedings of the IEEE International Conference on Cybernetics and Society}, pages 163--165, 1975.
+
+\bibitem[Goodman(2017)]{goodman2017fourier}
+Joseph~W. Goodman.
+\newblock \emph{Introduction to Fourier Optics}.
+\newblock W. H. Freeman, New York, 4 edition, 2017.
+\newblock ISBN 978-1-319-11916-4.
+
+\bibitem[Potmesil and Chakravarty(1981)]{potmesil1981lens}
+Michael Potmesil and Indranil Chakravarty.
+\newblock A lens and aperture camera model for synthetic image generation.
+\newblock In \emph{Proceedings of the 8th Annual Conference on Computer Graphics and Interactive Techniques (SIGGRAPH '81)}, pages 297--305. ACM, 1981.
+\newblock \doi{10.1145/800224.806818}.
+
+\bibitem[Zhou and Lin(2007)]{zhou2007dust}
+Changyin Zhou and Stephen Lin.
+\newblock Removal of image artifacts due to sensor dust.
+\newblock In \emph{Proc. IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, Minneapolis, MN, June 2007.
+
+\bibitem[Willson et~al.(2005)Willson, Maimone, Johnson, and Scherr]{willson2005dust}
+Reg~G. Willson, Mark~W. Maimone, Andrew~E. Johnson, and Larry~M. Scherr.
+\newblock An optical model for image artifacts produced by dust particles on lenses.
+\newblock In \emph{Proc. 8th International Symposium on Artificial Intelligence, Robotics and Automation in Space (i-SAIRAS)}, Munich, Germany, September 2005. ESA.
+\newblock ESA SP-603.
+
+\bibitem[Gu et~al.(2007)Gu, Ramamoorthi, Belhumeur, and Nayar]{gu2007dirtyglass}
+Jinwei Gu, Ravi Ramamoorthi, Peter Belhumeur, and Shree Nayar.
+\newblock Dirty glass: Rendering contamination on transparent surfaces.
+\newblock In \emph{Rendering Techniques 2007 (Proc. Eurographics Symposium on Rendering)}, pages 159--170, 2007.
+\newblock \doi{10.2312/EGWR/EGSR07/159-170}.
+
+\bibitem[Xue et~al.(2015)Xue, Rubinstein, Liu, and Freeman]{xue2015obstruction}
+Tianfan Xue, Michael Rubinstein, Ce~Liu, and William~T. Freeman.
+\newblock A computational approach for obstruction-free photography.
+\newblock \emph{ACM Transactions on Graphics}, 34\penalty0 (4), 2015.
+\newblock \doi{10.1145/2766940}.
+\newblock Proc. SIGGRAPH 2015.
+
+\bibitem[van~de Hulst(1957)]{vandehulst1981light}
+Hendrik~C. van~de Hulst.
+\newblock \emph{Light Scattering by Small Particles}.
+\newblock John Wiley \& Sons, New York, 1957.
+\newblock Reprinted: Dover Publications, New York, 1981; ISBN 978-0-486-64228-4.
+
+\bibitem[Bohren and Huffman(1983)]{bohren1983absorption}
+Craig~F. Bohren and Donald~R. Huffman.
+\newblock \emph{Absorption and Scattering of Light by Small Particles}.
+\newblock John Wiley \& Sons, New York, 1983.
+\newblock Reprinted: Wiley Professional Paperback Edition, Wiley-VCH, Weinheim, 1998; ISBN 978-0-471-29340-8.
+
+\bibitem[Berg et~al.(2011)Berg, Sorensen, and Chakrabarti]{berg2011extinction}
+Matthew~J. Berg, C.~M. Sorensen, and A.~Chakrabarti.
+\newblock A new explanation of the extinction paradox.
+\newblock \emph{Journal of Quantitative Spectroscopy and Radiative Transfer}, 112\penalty0 (7):\penalty0 1170--1181, 2011.
+\newblock \doi{10.1016/j.jqsrt.2010.08.024}.
+
+\bibitem[Deepak and Box(1978)]{deepak1978forward}
+Adarsh Deepak and Michael~A. Box.
+\newblock Forwardscattering corrections for optical extinction measurements in aerosol media. 1: Monodispersions.
+\newblock \emph{Applied Optics}, 17\penalty0 (18):\penalty0 2900--2908, 1978.
+\newblock \doi{10.1364/AO.17.002900}.
+
+\bibitem[Markel(2020)]{markel2020extinction}
+Vadim~A. Markel.
+\newblock What is extinction? operational definition of the extinguished power for plane waves and collimated beams.
+\newblock \emph{Journal of Quantitative Spectroscopy and Radiative Transfer}, 246:\penalty0 106933, 2020.
+\newblock \doi{10.1016/j.jqsrt.2020.106933}.
+
+\bibitem[Mishchenko et~al.(2009)Mishchenko, Berg, Sorensen, and van~der Mee]{mishchenko2009definition}
+Michael~I. Mishchenko, Matthew~J. Berg, Christopher~M. Sorensen, and Cornelis V.~M. van~der Mee.
+\newblock On definition and measurement of extinction cross section.
+\newblock \emph{Journal of Quantitative Spectroscopy and Radiative Transfer}, 110\penalty0 (4-5):\penalty0 323--327, 2009.
+\newblock \doi{10.1016/j.jqsrt.2008.11.010}.
+
+\bibitem[You et~al.(2016)You, Tan, Kawakami, Mukaigawa, and Ikeuchi]{you2016adherent}
+Shaodi You, Robby~T. Tan, Rei Kawakami, Yasuhiro Mukaigawa, and Katsushi Ikeuchi.
+\newblock Adherent raindrop modeling, detection and removal in video.
+\newblock \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}, 38\penalty0 (9):\penalty0 1721--1733, 2016.
+\newblock \doi{10.1109/TPAMI.2015.2491937}.
+
+\bibitem[Uricar et~al.(2019)Uricar, Krizek, Sistu, and Yogamani]{uricar2019soiling}
+Michal Uricar, Pavel Krizek, Ganesh Sistu, and Senthil Yogamani.
+\newblock {SoilingNet}: Soiling detection on automotive surround-view cameras.
+\newblock In \emph{Proceedings of the IEEE Intelligent Transportation Systems Conference (ITSC)}, pages 67--72, Auckland, New Zealand, 2019.
+\newblock \doi{10.1109/ITSC.2019.8917178}.
+
+\bibitem[Chen-Chen et~al.(2023)Chen-Chen, P{\'e}rez-Hoyos, S{\'a}nchez-Lavega, and Peralta]{chenchen2023insight}
+H.~Chen-Chen, S.~P{\'e}rez-Hoyos, A.~S{\'a}nchez-Lavega, and J.~Peralta.
+\newblock Characterisation of deposited dust particles on {Mars} {InSight} lander {Instrument} {Context} {Camera} ({ICC}) lens.
+\newblock \emph{Icarus}, 392:\penalty0 115393, 2023.
+\newblock \doi{10.1016/j.icarus.2022.115393}.
+
+\bibitem[Lai et~al.(2004)Lai, Wong, and Wong]{lai2004beam}
+H.~M. Lai, W.~Y. Wong, and W.~H. Wong.
+\newblock Extinction paradox and actual power scattered in light beam scattering: a two-dimensional study.
+\newblock \emph{Journal of the Optical Society of America A}, 21\penalty0 (12):\penalty0 2324--2333, 2004.
+\newblock \doi{10.1364/JOSAA.21.002324}.
+
+\bibitem[Azzalini and Genton(2008)]{azzalini2008robust}
+Adelchi Azzalini and Marc~G. Genton.
+\newblock Robust likelihood methods based on the skew-$t$ and related distributions.
+\newblock \emph{International Statistical Review}, 76\penalty0 (1):\penalty0 106--129, 2008.
+\newblock \doi{10.1111/j.1751-5823.2007.00016.x}.
+
+\bibitem[Fern{\'a}ndez and Steel(1998)]{fernandez1998skew}
+Carmen Fern{\'a}ndez and Mark F.~J. Steel.
+\newblock On {Bayesian} modeling of fat tails and skewness.
+\newblock \emph{Journal of the American Statistical Association}, 93\penalty0 (441):\penalty0 359--371, 1998.
+\newblock \doi{10.1080/01621459.1998.10474117}.
+
+\bibitem[Yu and Meng(2011)]{yu2011center}
+Yaming Yu and Xiao-Li Meng.
+\newblock To center or not to center: That is not the question---an ancillarity--sufficiency interweaving strategy ({ASIS}) for boosting {MCMC} efficiency.
+\newblock \emph{Journal of Computational and Graphical Statistics}, 20\penalty0 (3):\penalty0 531--570, 2011.
+\newblock \doi{10.1198/jcgs.2011.203main}.
+\newblock With discussion and rejoinder.
+
+\bibitem[Smith et~al.(2009)Smith, Bailey, Hough, and Lee]{smith2009lucky}
+Andrew Smith, Jeremy Bailey, J.~H. Hough, and Steven Lee.
+\newblock An investigation of lucky imaging techniques.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society}, 398\penalty0 (4):\penalty0 2069--2073, 2009.
+\newblock \doi{10.1111/j.1365-2966.2009.15249.x}.
+
+\end{thebibliography}

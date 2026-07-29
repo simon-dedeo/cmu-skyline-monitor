@@ -708,6 +708,163 @@ predicted spot (inner surface first, then outer --- the \SI{3}{mm} path differen
 changes the blur width measurably, so before-and-after even identifies which surface it
 was on), and keep the tracker running for the next mote.
 
+\section{Validating and extending the literature}
+\label{sec:literature}
+
+The system was built to clean pictures. Measured carefully enough, it turns out to
+double as a small test bench for three literatures --- particle optics, contaminant-%
+artifact removal, and robust hierarchical estimation. This section separates what our
+data \emph{confirm}, where they fill (or open) \emph{gaps}, and what they can and
+cannot say about live \emph{disagreements}.
+
+\subsection{Confirmations of theory}
+
+\paragraph{The pupil-shadow model, at its own validation point.} The geometric model
+of \S\ref{sec:what} --- artifact $=$ particle silhouette convolved with the entrance
+pupil's footprint on the glass, depth $=$ area ratio --- is exactly the optical model
+\citet{willson2005dust} derived for Mars-rover camera dust, and their validation
+regime (quarter-millimetre particles against a \SI{1.1}{mm} entrance pupil) matches
+ours almost to the digit. Our FWHM, depth and \SI{92}{px/mm} lever are an independent
+terrestrial confirmation, with two extensions their achromatic, deposition-only
+setting did not need: per-channel photometry and continuous position tracking.
+
+\paragraph{Extinction energetics in the geometric limit.} The particle-optics
+prediction is quantitative. From the speck, the pupil subtends a half-angle of
+$\approx\!\SI{18}{mrad}$ ($1.05^\circ$) --- roughly $7$--$10\times$ \emph{wider} than
+the speck's whole-body forward-diffraction lobe ($\lambda/2s \approx$ \ang{0.10} blue
+to \ang{0.15} red), yet $\sim\!57\times$ \emph{smaller} than the $\sim\!60^\circ$ a
+circular on-axis aperture must subtend before a transmission measurement converges to
+the true extinction cross section \citep{markel2020extinction,mishchenko2009definition}.
+The apparatus therefore counts essentially all forward-diffracted light as
+\emph{not removed}, and theory predicts it should measure geometric obstruction,
+$Q_{\mathrm{eff}} \approx 1$, not the asymptotic $Q_{\mathrm{ext}} = 2$. It does:
+the inspected $\sim\!\SI{0.25}{mm}$ speck predicts $(s/a)^2 = 5.2\%$ obstruction;
+the measured per-channel core depths run \SIrange{4.5}{5.4}{\percent}
+(Table, \S\ref{sec:what}); the $Q=2$ alternative, $10.3\%$, is excluded outright.
+Achromaticity corroborates independently: geometric blocking by an opaque silhouette
+is wavelength-flat, and the integrated deficits agree across channels to $8\%$,
+whereas any partially developed factor-of-two would print a strong monotonic trend
+through the channel-dependent Fresnel number ($N_F = (s/2)^2/\lambda d \approx
+0.85$--$1.13$ across RGB --- right at the shadow/Fraunhofer boundary, where the
+paradox asymptotics have not switched on).
+
+\paragraph{The $\lambda^{-2}$ recollection law, with an out-of-sample check.}
+Inverting the blue--red integrated-deficit split of \S\ref{sec:what} under the
+acceptance-cone model gives recollected texture-scatter fractions
+$\rho_R \approx 8\%$ and $\rho_B \approx 14\%$ of the blocked light --- physically
+plausible for micron-textured debris. The green channel, unused in that inversion,
+is then \emph{predicted} at a relative integral of $1.045$; it is measured at
+$1.08$, within the few-percent scatter of the maps. Small, but it is the difference
+between a story that accommodates the data and one that predicts a number.
+
+\paragraph{The affine contaminant model, per channel.} The intercept/slope
+decomposition of equation~\eqref{eq:m1} --- attenuation plus additive scatter, the
+\citet{gu2009dirty} image-formation model --- holds in linear light in all three
+channels with night-to-night stable~$t$, at single-defect rather than
+whole-lens-aggregate resolution.
+
+\subsection{Gaps: two filled, one opened}
+
+\paragraph{The static-contaminant assumption.} The artifact-removal literature
+partitions cleanly: static occluders with physics
+\citep{gu2009dirty,zhou2007dust,willson2005dust}, where the contaminant map is
+calibrated once and time-invariance is baked into the procedure; dynamic occluders
+with the wrong physics for our case --- adherent raindrops modelled refractively, as
+little wide-angle lenses rather than attenuators, and without positional tracking
+\citep{you2016adherent}; dynamic contamination with no physics at all --- automotive
+soiling handled as segmentation-then-inpainting \citep{uricar2019soiling}; and
+population dynamics without individual tracking --- the InSight lander's lens-dust
+census, whose temporality is deposition and wind removal of blobs, not migration of
+one \citep{chenchen2023insight}. To our knowledge no prior work continuously tracks
+the \emph{position of a single adherent occluder migrating across the optic},
+inferred through its defocused pupil shadow; the hierarchical state-space estimator
+of \S\ref{sec:inference} has no antecedent in this literature. Our data show the gap
+is not academic: intraday migration reaches $24\%$ of the shadow's FWHM
+(\SIrange{7}{18}{px} of \SI{76}{px}), and the calibrate-once assumption fails
+measurably --- a placement built from $\sim\!1.5$-day-old data printed a
+$\pm 2.5\%$ bright/dark dipole that per-tick tracking reduced to $\pm 0.4\%$
+(\S\ref{sec:results}).
+
+\paragraph{Chromatic signatures of contaminant shadows.} \citet{willson2005dust}
+declare their model achromatic by construction; the removal and soiling lines
+contain no spectral analysis; we found no dedicated study of the RGB signature of a
+near-lens contaminant shadow. Astronomical flat-fielding practice has long known
+\emph{anecdotally} that dust features are filter-dependent and drift between nights,
+so we claim the first \emph{systematic per-channel measurement}, not the first
+awareness --- and the blur-invariant integrated deficit of \S\ref{sec:what} is the
+methodological piece that makes the measurement meaningful, separating the object's
+colour from the optics' colour.
+
+\paragraph{A gap opened: the shadow as metrology.} The \SI{92}{px/mm} lever that
+made the artifact hard to track also makes it a free strain gauge: sub-millimetre
+mount and sash flexure, invisible in the distant scene, is resolved at
+\SIrange{0.08}{0.2}{mm} intraday through an accidental fiducial on the glass. We
+know of no literature that uses contaminant shadows for camera-mount metrology;
+a deliberate near-field fiducial (\S\ref{sec:physics}) would make the technique
+intentional.
+
+\subsection{Controversies: evidence either way, and honest silence}
+
+\paragraph{What makes $Q \to 2$: a one-sided dispute.} \citet{berg2011extinction}
+reject \emph{both} canonical explanations of the extinction paradox --- van de
+Hulst's edge diffraction and Brillouin's shadow-forming interference --- relocating
+the cause in the Ewald--Oseen cancellation of the incident wave inside the particle,
+and calling the result a reworking of sixty years of accepted understanding. We
+searched for published rebuttals and found none; the visible fault line is narrower
+--- \citet{markel2020extinction} declines to condemn Brillouin while agreeing that
+edge diffraction is the wrong picture. Our measurement is deliberately silent here:
+every account predicts the same recollected forward flux, so no fixed-acceptance
+energetic measurement --- ours included --- can discriminate the mechanism. We
+confirm the operational physics and abstain on its interpretation.
+
+\paragraph{Is ``extinction'' detector-independent? No --- and our channels show it.}
+\citet{markel2020extinction} argues extinction is not a detector-independent
+observable: the extinguished power lives in the incident--scattered interference
+cross-term, and what an instrument registers depends on its aperture's size, shape
+and position, degenerating to \emph{absorption} for large collection angles. Our
+system is a clean datum at that asymptote: at $57\times$ below the aperture-%
+convergence criterion we measure geometric blocking, and the paradoxical factor of
+two is nowhere in the data. The three colour channels then act as a second knob:
+each samples a different lobe-width-to-acceptance ratio, and the deficit slides by
+$7\%$ from blue to red exactly as the aperture-dependent view requires --- a
+three-band, single-particle demonstration that the measured quantity is a property
+of the \emph{instrument--particle pair}, not the particle alone. On the related
+beam-geometry continuum of \citet{lai2004beam} --- actual removed power running from
+$1\times$ geometric (narrow beam, near field) to $2\times$ (broad beam, far field)
+--- our point sits at the $1\times$ end ($N_F \approx 1$, standoff well inside the
+shadow's Rayleigh range), as measured.
+
+\paragraph{Symmetric Student-$t$ under one-sided contamination.} The robustness
+literature's warning lands squarely on us: symmetric-$t$ likelihoods are robust to
+symmetric heavy tails, but real contamination is typically asymmetric, and under it
+the symmetric-$t$ location estimand is only implicitly defined and drags toward the
+contamination \citep{azzalini2008robust,fernandez1998skew}. Cloud structure through
+a window is exactly such one-sided contamination. Our defence is empirical and
+structural rather than theoretical: the MAP track agrees with an independent
+pinned-centroid estimator to $\sim\!\SI{3}{px}$ along eight days that include heavy
+cloud, and the pooling across stacks, the positive amplitude floor, and the shared
+shape limit how far any one contaminated stack can drag the centre. The
+literature-sanctioned sensitivity check --- refitting with a skew-$t$ or an explicit
+one-sided contamination component --- is acknowledged future work.
+
+\paragraph{To centre or not to centre.} Our day-linking random walk is non-centred;
+the honest citation status is that \citet{papaspiliopoulos2007parametrization}
+established the choice as data-dependent, \citet{yu2011center} proved that neither
+parameterization dominates and that interweaving both can beat either --- and that
+those are theorems about \emph{MCMC mixing}, not MAP optimization, so our usage is
+an analogy (conditioning of the optimization surface when per-day information is
+weak), not a covered claim. Multi-start convergence to a common optimum is
+consistent with, but does not prove, the analogy.
+
+\paragraph{Selection bias in stacking.} Lucky-imaging practice knows that
+statistics evaluated at the point used to select or align frames are artificially
+enhanced --- regression to the mean in image form \citep{smith2009lucky}. We
+confirmed the caveat in the wild, from the other side: selecting map frames on
+\emph{flatness} (the statistic nearest the measurement) chose uniform overcast and
+drove the dip to the noise floor, while selecting on \emph{brightness} --- exogenous
+to the dip --- recovers it (\S\ref{sec:map}). The general rule our data support:
+select on a statistic independent of the one you intend to measure.
+
 \section*{Code, data and reproducibility}
 
 Deployed code is byte-copied under \code{production/} with a component-status table in

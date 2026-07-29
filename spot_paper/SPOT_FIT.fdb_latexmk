@@ -1,6 +1,14 @@
 # Fdb version 4
-["pdflatex"] 1785281655.5693 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785281656.34215 0
-  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785281329.62221 41709 81277a589d593a00d12c2f70d559eab1 ""
+["bibtex SPOT_FIT"] 1785291601.87178 "SPOT_FIT.aux" "SPOT_FIT.bbl" "SPOT_FIT" 1785291619.00818 0
+  "./refs.bib" 1785291537.33153 14485 62dae15532e3644b80f2ebaef1d7b640 ""
+  "/opt/local/share/texmf-texlive/bibtex/bst/natbib/unsrtnat.bst" 1520403979 24550 a41a6405f4de768c43e871d9fbce2bc8 ""
+  "SPOT_FIT.aux" 1785291618.84416 17789 1c300bb489bb9ec0a4e2a5bf98009646 "pdflatex"
+  (generated)
+  "SPOT_FIT.bbl"
+  "SPOT_FIT.blg"
+  (rewritten before read)
+["pdflatex"] 1785291618.04992 "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" "SPOT_FIT.pdf" "SPOT_FIT" 1785291619.0083 0
+  "/Users/simon/Desktop/MBP/spot_paper/SPOT_FIT.tex" 1785291617.85058 55356 eefc0a2a30deee854b6cab1c07bda7f3 ""
   "/opt/local/etc/texmf/texmf.cnf" 1781394635.23998 41383 e2d01f660d20f5e7c07ea7d1b7d1a538 ""
   "/opt/local/share/texmf-texlive/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1520408187 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/opt/local/share/texmf-texlive/fonts/map/fontname/texfonts.map" 1677027285 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -188,6 +196,7 @@
   "/opt/local/share/texmf-texlive/tex/latex/microtype/mt-cmr.cfg" 1772403055 22906 2122f73c0e7dc828f24240c2422dfe25 ""
   "/opt/local/share/texmf-texlive/tex/latex/microtype/mt-msa.cfg" 1772403055 5929 2b35ae0f0fb46984dfffa2bc9d09de5c ""
   "/opt/local/share/texmf-texlive/tex/latex/microtype/mt-msb.cfg" 1772403055 5594 992ef5c3f8fd1168bb7101a957333065 ""
+  "/opt/local/share/texmf-texlive/tex/latex/natbib/natbib.sty" 1520413854 45456 1c8843383c0bd05870c45fa0ebea6cc2 ""
   "/opt/local/share/texmf-texlive/tex/latex/pgf/basiclayer/pgf.sty" 1677027931 1090 bae35ef70b3168089ef166db3e66f5b2 ""
   "/opt/local/share/texmf-texlive/tex/latex/pgf/basiclayer/pgfcore.sty" 1677027931 373 00b204b1d7d095b892ad31a7494b0373 ""
   "/opt/local/share/texmf-texlive/tex/latex/pgf/compatibility/pgfcomp-version-0-65.sty" 1677027932 21013 f4ff83d25bb56552493b030f27c075ae ""
@@ -208,10 +217,11 @@
   "/opt/local/share/texmf-texlive/tex/latex/xcolor/xcolor.sty" 1738800804 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "/opt/local/var/db/texmf/fonts/map/pdftex/updmap/pdftex.map" 1781395727 5541357 bc9bda23ab9864778b6c0bfe4c64488b ""
   "/opt/local/var/db/texmf/web2c/pdftex/pdflatex.fmt" 1781394816 3637580 1d37c6ff43be158676db23520b4cde8e ""
-  "SPOT_FIT.aux" 1785281656.29197 11220 790b807fcd1f1e97c2b7bb56b00f2de1 "pdflatex"
-  "SPOT_FIT.out" 1785281656.29282 1936 a52808afde6e136d2b3597cb6db031d5 "pdflatex"
-  "SPOT_FIT.tex" 1785281329.62221 41709 81277a589d593a00d12c2f70d559eab1 ""
-  "SPOT_FIT.toc" 1785281656.29297 2073 00f6cbb462d04cd8397b7beac8a43ec5 "pdflatex"
+  "SPOT_FIT.aux" 1785291618.84416 17789 1c300bb489bb9ec0a4e2a5bf98009646 "pdflatex"
+  "SPOT_FIT.bbl" 1785291601.93201 13003 d92d67b7209a993f4f87a176fd561311 "bibtex SPOT_FIT"
+  "SPOT_FIT.out" 1785291618.8453 2188 d26a8abed2d25ec3cf0207940fd026e8 "pdflatex"
+  "SPOT_FIT.tex" 1785291617.85058 55356 eefc0a2a30deee854b6cab1c07bda7f3 ""
+  "SPOT_FIT.toc" 1785291618.84545 3576 35b6ec43967173f4b3b075545599a91f "pdflatex"
   "figs/after.png" 1785188290.37017 617309 355dd71df8781bd8153fc61208613fc2 ""
   "figs/before.png" 1785188290.36737 626977 922b9c5c96400de0d3adebe8e2d4a1e5 ""
   "figs/diff.png" 1785281652 307403 9b87d602f39a30a460446c30b30041d3 ""
