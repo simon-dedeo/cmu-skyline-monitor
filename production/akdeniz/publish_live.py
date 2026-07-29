@@ -117,8 +117,21 @@ def main():
         print("publish_live: no position in state"); return 0
     prev = st.get("prev")
     vx = vy = 0.0
+    vel_epochs = None
     if prev and prev[0] is not None:
-        vx, vy = float(cx - prev[0]), float(cy - prev[1])
+        # px/DAY (referee 2026-07-28b, finding 3): divide the centre step by the elapsed
+        # time between the two states' data epochs. A raw step is px/day only by the
+        # accident of consecutive nightly runs; a skipped night, replay or delayed fit
+        # would silently corrupt every downstream extrapolation.
+        dt_days = 1.0
+        try:
+            e1 = datetime.datetime.fromisoformat(st["fit_epoch"])
+            e0 = datetime.datetime.fromisoformat(st["prev_epoch"])
+            dt_days = max(0.25, (e1 - e0).total_seconds() / 86400.0)
+            vel_epochs = [st["prev_epoch"], st["fit_epoch"]]
+        except Exception:
+            pass
+        vx, vy = float(cx - prev[0]) / dt_days, float(cy - prev[1]) / dt_days
         vmag = float(np.hypot(vx, vy))
         if vmag > 45:
             vx, vy = vx * 45 / vmag, vy * 45 / vmag
@@ -170,6 +183,8 @@ def main():
              "spots": [{"fx": round(cx / FULL_W, 5), "fy": round(cy / FULL_H, 5),
                         "amp_pct": round(100 * (1 - tmap["min_T"]), 2), "r_px": 38.0}],
              "velocity": [round(vx, 2), round(vy, 2)],
+        "velocity_units": "px/day",
+        "velocity_epochs": vel_epochs,
              "tmap": tmap, "drift": ref.get("drift", {}),
              "acceptance": {k: good.get(k) for k in ("removal", "gain")}}
     if ref.get("scurve"):

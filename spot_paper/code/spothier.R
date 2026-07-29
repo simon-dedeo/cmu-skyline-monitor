@@ -1,3 +1,5 @@
+// LEGACY (referee 2b): exploratory only; superseded by spotell.stan + run_map.sh.
+// Not the model printed in the paper. Retained for the record.
 #!/opt/homebrew/bin/Rscript
 # spothier.R -- one hierarchical fit: spot position + shape tied across all image
 # stacks, depth per bracket bucket. Writes spot_pos.json for spotlab.py to recentre on.

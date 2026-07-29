@@ -1,3 +1,5 @@
+// LEGACY (referee 2b): exploratory only; superseded by spotell.stan + run_map.sh.
+// Not the model printed in the paper. Retained for the record.
 // spothier.stan -- hierarchical window-spot model: ONE fit over all (day x bracket)
 // image stacks, with the spot's POSITION and SHAPE tied across every image and its
 // DEPTH free to vary with exposure.

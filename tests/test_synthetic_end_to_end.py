@@ -57,4 +57,8 @@ for name, im in (("before", img), ("after", out)):
     print(f"{name}: dip at predicted position = {(1-np.median(L[disk])/np.median(L[ringf]))*100:+.3f}% linear")
 La = lin(out[:, :, 1])
 resid = (1 - np.median(La[disk]) / np.median(La[ringf])) * 100
-print("PASS" if abs(resid) < 0.5 else "FAIL", f"(threshold 0.5%, got {resid:+.3f}%)")
+ok = abs(resid) < 0.5
+print("PASS" if ok else "FAIL", f"(threshold 0.5%, got {resid:+.3f}%)")
+# referee 2026-07-28b, finding 9: a test must fail its caller, not just its reader
+import sys
+sys.exit(0 if ok else 1)

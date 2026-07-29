@@ -38,7 +38,7 @@ parameters {
   real<lower=15, upper=60> sx;
   real<lower=15, upper=60> sy;
   real<lower=-0.85, upper=0.85> rho;
-  vector<lower=0.002, upper=0.10>[M] A;
+  vector<lower=0.002, upper=0.10>[K] A;  // one amplitude per bracket class (referee 2b)
   vector[M] b0;
   matrix[M, 5] b;
   vector<lower=0>[M] sigma;

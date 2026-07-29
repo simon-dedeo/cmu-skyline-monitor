@@ -24,34 +24,48 @@
 
 \title{\bfseries Pittsburgh in a Grain of Sand\\[0.4em]
   \large\mdseries Lessons for Mars rovers and autonomous self-driving cars}
-\author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}}
-\date{2026-07-28 (v10)}
+\author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}\thanks{Operated by
+Simon DeDeo (Carnegie Mellon University). Analysis and code developed with AI
+assistance (Claude, Anthropic); the human operator is responsible for all claims,
+citations and errors.}}
+\date{2026-07-28 (v11)}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
 \noindent
-A 0.25-millimetre grain on a window in Porter Hall at Carnegie Mellon, three
-centimetres before a sky monitor's $f/4$ pupil, is a single-particle optics
-experiment in disguise. Its 76-pixel shadow matches the grain's projected area
-(4.5--5.4 per cent against 5.2), excluding the extinction paradox's factor of two;
-recollected blue scatter predicts the green channel from blue and red alone; and
-the 92 pixel-per-millimetre geometry resolves 1.3 millimetres of sash flexure ---
-the grain never moves. The measurements independently replicate the Mars rovers'
-dust-shadow optics, adding per-channel photometry and continuous tracking; to our
-knowledge no prior work continuously tracks the position of a single adherent
-occluder migrating across the optic. An autonomous Bayesian pipeline erases the
-artifact (median dip 4.5 to 0.5 per cent; live at
-\href{https://proofsandreasons.io}{proofsandreasons.io}) --- a physics-first
-alternative for self-driving cars' soiled, distrusted cameras.
+Every camera that looks through glass eventually encounters a speck of dirt. A grain
+on a window in Porter Hall at Carnegie Mellon --- consistent with 0.25 millimetres
+of opaque debris, three centimetres before a sky monitor's $f/4$ pupil --- prints a
+76-pixel shadow on every image, and, measured closely enough, becomes a
+single-particle optics experiment. With the pupil 7--10 times wider than the grain's
+forward-diffraction lobe, the system operates in the wide-acceptance limit of the
+extinction paradox: shadow depth sits at the projected-area value (4.5--5.4 per cent
+against $\approx$5.2), the forward-scattered half recollected rather than registered
+as extinction, and recollected blue scatter approximately predicts the green channel
+from blue and red alone --- measured extinction is a property of the
+instrument--particle pair, not of the particle. The shadow also acts as an
+(as yet uncalibrated) strain gauge for millimetre-scale flexure of the window sash;
+no motion of the grain itself is required. The geometry reproduces the dust-shadow
+optics developed for the Mars rovers' cameras, extended with per-channel photometry
+and continuous tracking: to our knowledge no prior work continuously tracks the
+apparent image position of a single adherent near-lens occluder. An autonomous
+pipeline --- a recursive, gated tracker validated offline against a Bayesian pixel
+model --- erases the artifact from served images (median dip 4.5 to 0.5 per cent,
+retrospectively evaluated; live at
+\href{https://proofsandreasons.io}{proofsandreasons.io}), and motivates
+physics-first handling of the soiled, distrusted cameras of self-driving cars. To
+provide information to the wider scientific community, raw data, materials, methods,
+and analysis code are available at
+\href{https://github.com/simon-dedeo/cmu-skyline-monitor}{github.com/simon-dedeo/cmu-skyline-monitor}.
 \end{abstract}
 
 \begin{center}
   \includegraphics[width=0.492\textwidth]{figs/full_before.jpg}\hfill
   \includegraphics[width=0.492\textwidth]{figs/full_after.jpg}
   \captionof{figure}{The same three raw brackets fused without (left) and with (right)
-  the correction --- 2026-07-25 19:17 EDT. The blemish is the dark smudge at the top of
+  the correction --- 2026-07-25 19:17 EDT. The blemish is the dark smudge in the red square at the top of
   the sky, left of centre; displayed dip \SI{5.46}{\percent} $\rightarrow$
   \SI{-0.5}{\percent} (nulled to within measurement noise). The corrected fusion is
   the production chain's output.}
@@ -178,7 +192,8 @@ matches the \SI{38.2}{px} measured by a completely separate empirical estimator.
 
 For unattended operation the nightly fit is a filter in the classical
 predict--update sense \citep{kalman1960,sarkka2023filtering}: tonight's prior is last
-night's posterior propagated by the blemish's own observed velocity (self-calibrating
+night's accepted state (a point estimate with gates, not a posterior) propagated by
+the blemish's own observed velocity (self-calibrating
 --- no parallax constant, no scene-drift proxy), with implausible steps and
 low-confidence fits rejected in favour of carrying the previous state forward.
 
@@ -277,8 +292,9 @@ every tick the corrector chains three estimators, each bounded by the one below 
 \item \textbf{Persistent template lock} --- the measurement update. The corrector
   cross-correlates the frame's own dip (frame divided by its local background) against
   the map's dip template within $\pm\SI{25}{px}$ \citep{lewis1995ncc}; a decisive lock
-  (normalised correlation $\ge 0.45$, clean surrounding ring) snaps the map onto the measured
-  position \emph{and is saved}. A lock must also be unambiguous: the runner-up
+  (normalised correlation $\ge 0.45$, unambiguous runner-up margin, bounded
+  displacement) snaps the map onto the measured position \emph{and is saved};
+  ring cleanliness gates the amplitude self-calibration, not the lock. A lock must also be unambiguous: the runner-up
   correlation peak (outside the winner's neighbourhood) must trail by a margin, so a
   cloud edge or contrail that ties the blemish cannot capture the tracker. The next tick
   starts from the last saved lock (if fresh and within \SI{40}{px} of the prediction)
@@ -286,7 +302,10 @@ every tick the corrector chains three estimators, each bounded by the one below 
   is minutes old instead of a day old. The nightly prediction remains the fallback and
   the sanity bound, so one corrupted lock cannot walk the correction away. The published
   bundle itself is integrity-checked on load (schema version, array hash, finiteness);
-  a torn or corrupt publish is rejected and the previous state persists.
+  a torn or corrupt publish is rejected and the corrector falls back to its
+  self-referential ring fit for that tick (the last accepted bundle is not cached in
+  memory). Every tick appends its provenance --- model timestamp, map hash, code
+  version, enable-flag state, lock diagnostics --- to \code{spot\_provenance.csv}.
 \end{enumerate}
 
 The map content is placed by warping (bilinear, border transmittance $1.0$) with the
@@ -323,14 +342,14 @@ is clamped to $[0.4, 1.8]$, the live amplitude trim to $[0.75, 1.35]\times$ the 
 with the exposure scale capped at $2.5$, and the total applied deficit floored at
 $T \ge 0.85$. The correction can therefore never exceed a fixed multiple of what the
 blemish could physically account for, whatever the scene does; clouds neither evade the
-bound nor get eaten by it, and the noise texture passes through untouched at every
-frequency.
+bound nor get eaten by it, and the grain's noise is never explicitly filtered; the multiplicative correction
+rescales local noise amplitude together with the signal, by design.
 
 \subsection{Offline reprocessing: closed-loop gain}
 
 For archive reprocessing, where four fusions per tick are affordable, the gain is solved
 in \emph{display} space: fuse at adaptive probe gains bracketing the root, secant-step
-to the gain that nulls the \emph{fused} dip, and refine once. This removes all dependence on the
+to the gain that nulls the \emph{fused} dip, and refine once. Because the gain is chosen by evaluating the corrected residual on the frame itself, the archive numbers it produces are an oracle-style upper bound, reported separately from the live path. This removes all dependence on the
 scene-dependent enhancement amplification (Figure~\ref{fig:gain}); the fitted gains
 (median \num{2.83}) independently recover the measured $\approx\!2.85\times$ CLAHE
 amplification.
@@ -346,11 +365,18 @@ $\operatorname{med}|\epsilon| \approx \SI{11}{px/day}$: camera rotation passes t
 at unit gain, plus an independent component --- episodic, up to \SI{27}{px/day},
 continuous within days (\SIrange{7}{18}{px}, measured by splitting days into thirds).
 With the true shadow geometry (\S\ref{sec:what}) the independent component requires no
-motion of the object at all: at $\sim\!\SI{3}{cm}$ standoff the lever arm is
-$\sim\!\SI{92}{px}$ of image shift per millimetre of camera--pane relative translation,
-so the entire week's \SI{120}{px} walk is \SI{1.3}{mm} of cumulative flexure, and the
-intraday motion is \SIrange{0.08}{0.2}{mm} of thermal flex --- unremarkable for a
-sun-struck sash with a camera resting against it. Day-by-day step ratios ranging from
+motion of the object at all: at $\sim\!\SI{3}{cm}$ standoff the translational lever is
+$f_{\mathrm{px}}/d \approx$ \SIrange{63}{73}{px/mm} on axis (focal length
+$f_{\mathrm{px}} \approx \SI{2200}{px}$ from the advertised \ang{90} diagonal field of
+view; $d =$ \SIrange{30}{35}{mm}), rising toward $\sim$\SIrange{75}{87}{px/mm} at the
+blemish's off-axis position. The week's \SI{120}{px} walk is then
+\SIrange{1.4}{1.9}{mm} of cumulative flexure and the intraday motion
+\SIrange{0.08}{0.3}{mm} --- unremarkable for a sun-struck sash with a camera resting
+against it. These are uncalibrated estimates: the local plate scale at the blemish has
+not been measured, and a controlled sub-millimetre camera translation (\S\ref{sec:limitations})
+is the direct calibration. (An earlier draft quoted \SI{92}{px/mm} from an
+average-pixels-per-degree shortcut that overstates the paraxial scale; a referee's
+recomputation prompted this correction.) Day-by-day step ratios ranging from
 $1.06$ to $26.7$ simply reflect days when the mount flexed without rotating and vice
 versa. No constant ratio, and hence no feed-forward scheme, can track this; a
 near-field fiducial (a tape dot on the glass) would separate camera flexure from any
@@ -400,7 +426,8 @@ capture cycle.
 \toprule
 level & where & cadence & cost \\
 \midrule
-MAP position/shape fit (multi-start L-BFGS) & \code{akdeniz} & nightly & seconds \\
+nightly estimator (pinned centroid, recursive prior) & \code{akdeniz} & nightly & seconds \\
+MAP position/shape fit (multi-start L-BFGS; offline validation) & \code{akdeniz} & on demand & seconds \\
 registered transmittance map ($\sim$150 frames) & \code{akdeniz} & nightly & $\sim$\SI{2}{min} \\
 acceptance validation (20 ticks $\times$ 4 fusions) & \code{akdeniz} & nightly & $\sim$\SI{4}{min} \\
 publish (map $+$ model, $\sim$\SI{1.1}{MB}) & \code{akdeniz}$\to$\code{pandr} & nightly & seconds \\
@@ -572,10 +599,17 @@ median residual \SI{0.52}{\percent} with CI $[0.40, 0.66]$.}
 \label{tab:strata}
 \end{table}
 
-Live evidence is retained in machine-readable form
-(\code{spot\_paper/evidence/live\_paired.csv}: per tick, the served frame vs.\ a
-re-fusion of its own raw brackets uncorrected, with positions, levels, ring structure
-and model version). On the same clean-tick selection as Table~\ref{tab:strata}: the
+Paired evidence is retained in machine-readable form
+(\code{spot\_paper/evidence/live\_paired.csv}: per tick, the archived served frame
+vs.\ a re-fusion of its own raw brackets uncorrected, with positions, levels, ring
+structure and model version). A referee correctly observes that these rows are
+\emph{retrospective}: the analysis script stamps each row with the model current at
+analysis time, not the bundle that served the tick, and archive frames may have been
+reprocessed --- so the comparison establishes paired-reprocessing performance, not
+contemporaneous live performance. Per-tick provenance (model hash, code version,
+enable state, lock diagnostics; \code{spot\_provenance.csv}) now accumulates
+append-only on the capture host, and a prospective frozen-model trial over complete
+clear, mixed and cloudy days is the planned test. On the same clean-tick selection as Table~\ref{tab:strata}: the
 clear evening of 07-27 gives $n=20$, median removal \SI{92.9}{\percent}, median served
 residual \SI{+0.35}{\percent}, range $[-0.80, +1.44]$; 07-28 --- a heavily clouded day
 during which the tracking chain was deployed and revised mid-day --- gives $n=13$
@@ -608,8 +642,11 @@ crosses the pane as a patch of diameter $\approx a\,(1-d/F)$, where $d$ is the
 pupil-to-pane distance and $F\approx\SI{0.5}{m}$ the fixed focus distance --- the
 circle-of-confusion geometry of any defocused imaging system
 \citep{goodman2017fourier,potmesil1981lens}. A speck of
-size $s$ removes the fraction $(s/a)^2$ of a pixel's light and images with full width
-$\approx\big(s + a(1-d/F)\big)/d$. The measured depth (\SIrange{3}{7}{\percent}) gives
+size $s$ removes the fraction $(s/a)^2$ of a pixel's light and images with a support
+width $\approx\big(s + a(1-d/F)\big)/d$ (a support scale, not automatically the
+measured FWHM; the difference is absorbed into the fitted range of $d$, and the
+pixel-bundle factor $1-d/F$ assumes the nominal \SI{0.5}{m} focus conjugate of a
+spec-sheet focus \emph{range}). The measured depth (\SIrange{3}{7}{\percent}) gives
 $s \approx 0.22a \approx \SI{0.24}{mm}$; the measured \SI{76}{px} FWHM then requires
 $d \approx \SIrange{30}{35}{mm}$. (That a thin occluder far from focus prints as a
 low-frequency attenuation pattern --- the occluder convolved with the aperture --- is
@@ -628,11 +665,12 @@ grey debris. The two or three fainter compact features
 elsewhere on the pane are siblings: other motes.
 
 \paragraph{Why the image moves.} The same geometry that blurs the speck amplifies
-motion: image shift equals camera--pane translation divided by $d$, about
-\textbf{\SI{92}{px/mm}}. The feature's entire week of ``migration'' (\SI{120}{px}) is
-\SI{1.3}{mm} of accumulated flexure; its intraday drift is
-\SIrange{0.08}{0.2}{mm} --- the thermal breathing of a sun-struck sash with a camera
-resting against it. Nothing on the glass ever moved. The kinematic anomalies that
+motion: image shift equals camera--pane translation times the local plate scale over
+$d$ --- \textbf{\SIrange{63}{87}{px/mm}}, uncalibrated (\S\ref{sec:physics}). The
+feature's entire week of ``migration'' (\SI{120}{px}) is \SIrange{1.4}{1.9}{mm} of
+accumulated flexure; its intraday drift is \SIrange{0.08}{0.3}{mm} --- the thermal
+breathing of a sun-struck sash with a camera resting against it. No motion on the
+glass is required, although only a fixed fiducial can prove none occurred. The kinematic anomalies that
 motivated more exotic identifications (episodic steps, opposite-signed step days, onset
 with the hot spell) are all natural behaviours of \si{mm}-scale structural flexure seen
 through a $30\times$ lever.
@@ -661,7 +699,7 @@ integrated deficit (rel.) & 1.00 & 1.08 & 1.07 \\
 Red is 20\% deeper than blue but also narrower, and the integrated deficits agree to
 within 8\% across all three channels. The depth/width pattern is \emph{not} lens
 chromatism --- for this geometry every axial mechanism (normal dispersion, achromat
-secondary spectrum, edge diffraction at Fresnel number $\sim$4, sensor carrier
+secondary spectrum, edge diffraction at Fresnel number $\sim$1 (radius convention), sensor carrier
 diffusion) predicts the red shadow \emph{broader}, the wrong sign. What produces
 deeper-and-narrower red at constant integral is the speck itself, through a mechanism
 with a long history in particle optics: \emph{the apparent extinction of a particle
@@ -673,7 +711,8 @@ forward diffraction lobe --- the ``extinction paradox''
 detector of finite acceptance recovers part of that lobe and registers correspondingly
 less extinction, a bias quantified for transmissometry by \citet{deepak1978forward}.
 Our geometry sets a generous acceptance: light scattered at the pane by less than
-$\theta_{\mathrm{acc}} \approx a/d \approx \SI{34}{mrad}$ re-enters the pupil. The
+$\theta_{\mathrm{acc}} \approx a/(2d) \approx \SI{18}{mrad}$ half-angle
+(\SI{34}{mrad} full cone) re-enters the pupil. The
 speck's whole-body diffraction lobe ($\theta \sim \lambda/s \approx \SI{2}{mrad}$)
 lies entirely inside that cone --- which is why the core reads simple geometric
 blocking, $(s/a)^2$, in the first place. Scattering from micron-scale surface texture,
@@ -686,7 +725,11 @@ shallower), feathering its skirt (blue wider, by $\sim\SI{30}{\micro m}$ at the 
 and slightly lowering the blue integral, exactly as measured. Red, its scattering
 spread over the widest lobes, is recollected least and casts the cleanest geometric
 shadow. The blur-invariant total extinction remains
-\textbf{neutral to $\pm 8\%$}. That bound excludes strongly pigmented candidates: rust ($\times$ several
+\textbf{neutral to $\pm 8\%$}. These are consumer-camera bands after demosaicing, white balance and colour
+processing, linearised by an assumed inverse-sRGB curve; the integrals are computed
+within $r<\SI{90}{px}$ with negative map values clipped, and carry no formal
+uncertainty --- the channel comparison is indicative, not calibrated. Subject to that
+caveat, the bound disfavours strongly pigmented candidates: rust ($\times$ several
 in the blue), organic tar or sap, pollen, chlorophyll debris. What remains is the
 unglamorous family that grey, wavelength-flat extinction describes: mineral dust,
 paint or plaster fleck, paper fibre, insect frass. In transmission at $f/4$ the speck
@@ -695,7 +738,7 @@ the direct inspection finding an ordinary speck on the pane. (The blue-heavy
 \emph{additive} residual of \S\ref{sec:physics} is a separate, response-curve-confounded
 term and should not be read as the object's colour.)
 
-\paragraph{Morals.} Three, earned expensively. First, \emph{an assumed instrument
+\paragraph{Morals.} Three. First, \emph{an assumed instrument
 parameter is a prior like any other, and a strong one}: two plausible physical stories
 were built downstream of $f/2$, and both collapsed the moment the real $f/4$ was looked
 up. Second, the apparent motion of a near-field feature is a strain gauge, not a
@@ -724,9 +767,12 @@ of \S\ref{sec:what} --- artifact $=$ particle silhouette convolved with the entr
 pupil's footprint on the glass, depth $=$ area ratio --- is exactly the optical model
 \citet{willson2005dust} derived for Mars-rover camera dust, and their validation
 regime (quarter-millimetre particles against a \SI{1.1}{mm} entrance pupil) matches
-ours almost to the digit. Our FWHM, depth and \SI{92}{px/mm} lever are an independent
-terrestrial confirmation, with two extensions their achromatic, deposition-only
-setting did not need: per-channel photometry and continuous position tracking.
+ours closely --- but their quantitative validation compared artifact \emph{diameters};
+reference-particle variability prevented a predicted-vs-measured optical-density test.
+Our depth photometry is therefore complementary evidence in the same geometry rather
+than a confirmation of their quantitative predictions, with two extensions their
+achromatic, deposition-only setting did not need: per-channel photometry and
+continuous position tracking of the apparent artifact position.
 
 \paragraph{Extinction energetics in the geometric limit.} The particle-optics
 prediction is quantitative. From the speck, the pupil subtends a half-angle of
@@ -736,11 +782,18 @@ to \ang{0.15} red), yet $\sim\!57\times$ \emph{smaller} than the $\sim\!60^\circ
 circular on-axis aperture must subtend before a transmission measurement converges to
 the true extinction cross section \citep{markel2020extinction,mishchenko2009definition}.
 The apparatus therefore counts essentially all forward-diffracted light as
-\emph{not removed}, and theory predicts it should measure geometric obstruction,
-$Q_{\mathrm{eff}} \approx 1$, not the asymptotic $Q_{\mathrm{ext}} = 2$. It does:
-the inspected $\sim\!\SI{0.25}{mm}$ speck predicts $(s/a)^2 = 5.2\%$ obstruction;
-the measured per-channel core depths run \SIrange{4.5}{5.4}{\percent}
-(Table, \S\ref{sec:what}); the $Q=2$ alternative, $10.3\%$, is excluded outright.
+\emph{not removed}, and theory predicts it should register an effective attenuation
+at geometric blockage, not the asymptotic $Q_{\mathrm{ext}} = 2$. It does: the
+inspected $\sim\!\SI{0.25}{mm}$ speck predicts $(s/a)^2 = 5.2\%$ obstruction; the
+measured per-channel core depths run \SIrange{4.5}{5.4}{\percent}
+(Table, \S\ref{sec:what}), where doubling would give $10.3\%$. We do not claim this
+\emph{excludes} $Q_{\mathrm{ext}}=2$ --- $Q_{\mathrm{ext}}$ is a far-field
+plane-wave cross-section, and the near-field, wide-acceptance conditions here are
+precisely those in which the paradoxical factor is recollected rather than
+registered; the measurement instantiates that regime, it does not adjudicate the
+cross-section. (Markel's $\sim\!60^\circ$ convergence criterion likewise concerns a
+plane-wave integrating-detector configuration; we use it as an order-of-magnitude
+guide, not an exact correspondence.)
 Achromaticity corroborates independently: geometric blocking by an opaque silhouette
 is wavelength-flat, and the integrated deficits agree across channels to $8\%$,
 whereas any partially developed factor-of-two would print a strong monotonic trend
@@ -753,7 +806,7 @@ Inverting the blue--red integrated-deficit split of \S\ref{sec:what} under the
 acceptance-cone model gives recollected texture-scatter fractions
 $\rho_R \approx 8\%$ and $\rho_B \approx 14\%$ of the blocked light --- physically
 plausible for micron-textured debris. The green channel, unused in that inversion,
-is then \emph{predicted} at a relative integral of $1.045$; it is measured at
+is then \emph{predicted} at a relative integral of $1.045$ (no formal uncertainty is propagated through the maps and colour pipeline --- a day-level bootstrap is future work); it is measured at
 $1.08$, within the few-percent scatter of the maps. Small, but it is the difference
 between a story that accommodates the data and one that predicts a number.
 
@@ -776,7 +829,8 @@ soiling handled as segmentation-then-inpainting \citep{uricar2019soiling}; and
 population dynamics without individual tracking --- the InSight lander's lens-dust
 census, whose temporality is deposition and wind removal of blobs, not migration of
 one \citep{chenchen2023insight}. To our knowledge no prior work continuously tracks
-the \emph{position of a single adherent occluder migrating across the optic},
+the \emph{apparent image position of a single adherent occluder} --- the shadow
+migrates across the frame whether or not the grain moves on the glass ---
 inferred through its defocused pupil shadow; the hierarchical state-space estimator
 of \S\ref{sec:inference} has no antecedent in this literature. Our data show the gap
 is not academic: intraday migration reaches $24\%$ of the shadow's FWHM
@@ -795,7 +849,7 @@ awareness --- and the blur-invariant integrated deficit of \S\ref{sec:what} is t
 methodological piece that makes the measurement meaningful, separating the object's
 colour from the optics' colour.
 
-\paragraph{A gap opened: the shadow as metrology.} The \SI{92}{px/mm} lever that
+\paragraph{A gap opened: the shadow as metrology.} The \SIrange{63}{87}{px/mm} (uncalibrated) lever that
 made the artifact hard to track also makes it a free strain gauge: sub-millimetre
 mount and sash flexure, invisible in the distant scene, is resolved at
 \SIrange{0.08}{0.2}{mm} intraday through an accidental fiducial on the glass. We
@@ -877,7 +931,12 @@ defect must null through the deployed corrector to $<0.5\%$) is
 \code{tests/test\_synthetic\_\allowbreak end\_to\_end.py}; the current chain passes at
 \SI{0.000}{\percent}. A fuller test matrix (edge-clamped crops, injected motion,
 corrupted bundles, template-lock distractors) is specified in the 2026-07-28 review and
-remains future work.
+remains future work; the synthetic test now exits nonzero on failure. The full
+repository, including a raw-bracket sample sufficient to reproduce
+Figure~\ref{fig:full} and the deployed code as byte-copies, is public at
+\href{https://github.com/simon-dedeo/cmu-skyline-monitor}{github.com/simon-dedeo/cmu-skyline-monitor};
+the complete bracket archive ($\sim$hundreds of GB) is available on request. A
+point-by-point response to the second review is \code{REFEREE2\_ACTIONS.md}.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -900,6 +959,16 @@ remains future work.
 \item One-minute golden-hour frames keep no raw brackets, so their era corrections
   cannot be reprocessed; they are labelled rather than silently mixed with reprocessed
   frames.
+\item The plate scale at the blemish is uncalibrated; all flexure figures inherit a
+  $\sim$30\% scale uncertainty until a controlled camera-translation calibration is
+  done. The colour-channel comparison is likewise uncalibrated (consumer pipeline,
+  assumed inverse-sRGB); narrow-band or RAW measurements would make it quantitative.
+\item The physical identification is a consistent solve, not a controlled
+  measurement: known-size calibration dots, a measured entrance pupil, a fixed pane
+  fiducial and the wipe test (\S\ref{sec:what}) are the decisive experiments, none
+  yet performed.
+\item Paired performance evidence is retrospective (see \S\ref{sec:results}); no
+  false-correction study under contrails, birds, glare or saturation has been run.
 \end{itemize}
 
 \bibliographystyle{unsrtnat}

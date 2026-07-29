@@ -72,6 +72,8 @@ def _load_tmap():
         if not m:
             return None
         T = np.load(TMAP)
+        if mm.get("schema") not in (2,):
+            raise ValueError(f"unsupported model schema {mm.get('schema')!r}")
         want = mm.get("tmap_sha256_16")
         if want:
             import hashlib
@@ -177,6 +179,7 @@ def _correct(img):
         if tm is not None and x0 >= 0 and y0 >= 0 and y0 + 2 * h <= H and x0 + 2 * h <= W and T.shape == (2 * h, 2 * h, 3):
             win = out[y0:y0 + 2 * h, x0:x0 + 2 * h]
             yy, xx = np.mgrid[0:2 * h, 0:2 * h]
+            prov = {"path": "tmap", "lock": 0, "pk": None, "pk2": None}
             # --- TEMPLATE LOCK: measure where the dip actually is in THIS frame and snap
             #     the map to it. Prediction alone cannot follow intraday migration.
             try:
@@ -199,10 +202,12 @@ def _correct(img):
                 my0, mx0 = max(0, loc[1] - 8), max(0, loc[0] - 8)
                 cc2[my0:loc[1] + 9, mx0:loc[0] + 9] = -1.0
                 pk2 = float(cc2.max()) if cc2.size else -1.0
+                prov["pk"], prov["pk2"] = round(float(pk), 3), round(pk2, 3)
                 if pk >= 0.45 and (pk - pk2) >= 0.08:
                     lx = (sx0 + loc[0]) - tx0
                     ly = (sy0 + loc[1]) - ty0
                     if abs(lx) <= 25 and abs(ly) <= 25:
+                        prov["lock"] = 1
                         if abs(lx) > 1 or abs(ly) > 1:
                             M3 = np.float32([[1, 0, lx], [0, 1, ly]])
                             T = np.stack([cv2.warpAffine(T[:, :, c], M3, (2 * h, 2 * h),
@@ -221,6 +226,25 @@ def _correct(img):
                             os.replace(tmp, LOCKF)
                         except Exception:
                             pass
+            except Exception:
+                pass
+            # append-only per-tick provenance (referee 2026-07-28b, finding 1): which
+            # model bundle, code version and lock state served THIS correction.
+            try:
+                pl = os.path.join(HERE, "spot_provenance.csv")
+                hdr = not os.path.exists(pl)
+                with open(pl, "a") as fh:
+                    if hdr:
+                        fh.write("ts,model_updated,tmap_sha16,code_version,apply_flag,"
+                                 "cx,cy,path,lock,pk,pk2\n")
+                    fh.write(",".join(str(v) for v in [
+                        datetime.datetime.now(datetime.timezone.utc)
+                        .isoformat(timespec="seconds"),
+                        (mm or {}).get("updated", ""), (mm or {}).get("tmap_sha256_16", ""),
+                        (mm or {}).get("code_version", ""),
+                        int(os.path.exists(os.path.join(HERE, ".spot_apply_on"))),
+                        round(x0 + rx, 1), round(y0 + ry, 1), prov["path"], prov["lock"],
+                        prov["pk"], prov["pk2"]]) + "\n")
             except Exception:
                 pass
             rb2 = np.sqrt((xx - rx) ** 2 + (yy - ry) ** 2)

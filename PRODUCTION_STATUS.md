@@ -8,7 +8,7 @@ authoritative.
 
 | component | file (deployed host) | snapshot copy | status |
 |---|---|---|---|
-| Live corrector: map placement, velocity extrapolation from data epoch, persistent template lock (`.spot_lock.json`), ambiguity gate, amplitude self-cal, local-sky cap, bundle integrity check, staleness tiers | `pandr:~/monitor/flatfield.py` | `production/pandr/flatfield.py` | **deployed 2026-07-28** (five same-day revisions; backups `flatfield.py.bak-*` on host) |
+| Live corrector: map placement, velocity extrapolation from data epoch, persistent template lock (`.spot_lock.json`), ambiguity gate, amplitude self-cal, bundle integrity check (schema + hash + finiteness), per-tick provenance log (`spot_provenance.csv`), staleness tiers | `pandr:~/monitor/flatfield.py` | `production/pandr/flatfield.py` | **deployed 2026-07-28** (five same-day revisions; backups `flatfield.py.bak-*` on host) |
 | Fusion + enhance (correction applied pre-fusion) | `pandr:~/monitor/hdrfuse.py` | `production/pandr/hdrfuse.py` | deployed (unchanged since 07-20) |
 | Nightly tracker: recursive prior, pinned-across-brackets centroid estimator, data-epoch state, px/day velocity, acceptance gate w/ run-day-first validation | `akdeniz:~/spotnight.py` | `production/akdeniz/spotnight.py` | **deployed 2026-07-28**, cron 13:00 EDT |
 | Publisher: registered linear tmap at tracked centre, blemish-local sigma-clipped rings, refuse-to-publish gates, schema v2 + sha256, atomic push | `akdeniz:~/publish_live.py` | `production/akdeniz/publish_live.py` | **deployed 2026-07-28**, runs after nightly tracker |
@@ -35,3 +35,20 @@ authoritative.
 - `spot_fit_check/sweep2.csv` — offline Table-2 source (filters disclosed in paper).
 - `spot_paper/evidence/live_paired.csv` — machine-readable live paired measurements.
 - `spot_fit_check/check.html`, `spot_fit_check/sweep.csv` — earlier diagnostics.
+
+## Referee 2 (2026-07-28b) fixes
+
+- `publish_live.py` velocity now divided by the elapsed epoch interval (px/day, was
+  raw px/step); bundle carries `velocity_units` and `velocity_epochs`. **Deployed to
+  akdeniz pending host availability** (host unreachable at fix time; production/ copy
+  is fixed and is the deploy source).
+- `flatfield.py` now rejects unsupported `schema` values on load and appends per-tick
+  provenance (model timestamp, tmap hash, code version, `.spot_apply_on` state, lock
+  diagnostics) to `spot_provenance.csv`. Deployed to pandr 2026-07-28.
+- `acceptance.gain` in the bundle is the **display-space closed-loop gain** (median of
+  per-tick fusion-nulling gains, expected 2--3.5; compensates enhancement
+  amplification). It is NOT the model-relative live clamp ([0.4, 1.8]) — the 3.323 in
+  the checked-in bundle is in range for its actual semantics. Key renamed in docs;
+  units documented here to resolve the referee's flag.
+- Note: `.spot_apply_on` is an external enable flag; its per-tick state is now logged
+  in the provenance file. The corrector ships disabled by default.
