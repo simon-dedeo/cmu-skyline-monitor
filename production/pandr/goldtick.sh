@@ -19,6 +19,17 @@ log(){ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [goldtick] $*" >>"$LOG"; }
 W="$("$PY" goldpeak.py --window data.json 2>/dev/null)"
 if [ "$W" = "morning" ] || [ "$W" = "evening" ]; then
   echo "$W" > .gold_window                        # mark the window active
+  # EXACT-POSITION capture (Simon 2026-07-28): if the sun crosses TARGET_ELEV within
+  # this tick, sleep so the 3-exposure bracket is centred on the crossing second.
+  TT="$("$PY" goldpeak.py --target-time data.json 2>/dev/null)"
+  if [ -n "$TT" ] && [ "$TT" != "NONE" ]; then
+    NOWS=$(date +%s); DT=$((TT - NOWS - 12))
+    if [ "$DT" -gt 0 ] && [ "$DT" -le 170 ]; then
+      log "target crossing in $((DT+12))s -> sleeping ${DT}s for exact-position capture"
+      touch .gold_exact
+      sleep "$DT"
+    fi
+  fi
   # Run the scan directly: SkyCam.app gets the camera grant via `open` (goldscan.sh),
   # and this LaunchAgent already runs in the GUI session, so no ssh->localhost hop is
   # needed (that was the old-camera Big-Sur trick, which doesn't grant camera on

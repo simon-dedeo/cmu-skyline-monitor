@@ -195,6 +195,33 @@ def current_window(data_path):
 
 
 def main():
+    # --target-time <data.json>: print the epoch second at which the sun crosses
+    # TARGET_ELEV in the active window (bisected to ~1 s), or NONE. No camera.
+    if len(sys.argv) > 1 and sys.argv[1] == "--target-time":
+        which = current_window(sys.argv[2] if len(sys.argv) > 2 else "data.json")
+        if which not in TARGET_ELEV:
+            print("NONE"); return
+        tgt = TARGET_ELEV[which]
+        rising = (which == "morning")
+        now = datetime.datetime.now(datetime.timezone.utc)
+        prev_t, prev_e = now, solar.sun_elevation(now)
+        for m in range(1, 181):
+            t2 = now + datetime.timedelta(minutes=m)
+            e2 = solar.sun_elevation(t2)
+            crossed = (prev_e < tgt <= e2) if rising else (prev_e > tgt >= e2)
+            if crossed:
+                lo, hi = prev_t, t2
+                for _ in range(22):
+                    mid = lo + (hi - lo) / 2
+                    em = solar.sun_elevation(mid)
+                    before = (em < tgt) if rising else (em > tgt)
+                    if before:
+                        lo = mid
+                    else:
+                        hi = mid
+                print(int(lo.timestamp())); return
+            prev_t, prev_e = t2, e2
+        print("NONE"); return
     # --window <data.json>: just print the active golden window (or NONE), no camera.
     if len(sys.argv) > 1 and sys.argv[1] == "--window":
         data_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "data.json")

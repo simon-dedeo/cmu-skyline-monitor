@@ -16,7 +16,19 @@ DAY="$(date -u +%Y-%m-%d)"; HHMM="$(date -u +%H%M)"
 log(){ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [goldscan] $*" >>"$LOG"; }
 
 source "$(dirname "$0")/camlock.sh"
-camlock_acquire "$LOG" || exit 0     # busy (5-min tick mid-capture) -> skip this minute
+if [ -f .gold_exact ]; then
+  # exact-position tick: the crossing happens once -- retry the lock briefly rather
+  # than skipping the minute
+  OK=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if camlock_acquire "$LOG"; then OK=1; break; fi
+    sleep 3
+  done
+  rm -f .gold_exact
+  [ -n "$OK" ] || exit 0
+else
+  camlock_acquire "$LOG" || exit 0   # busy (5-min tick mid-capture) -> skip this minute
+fi
 
 mkdir -p goldscan "archive/$DAY"
 SCAN="goldscan/${HHMM}_sky.jpg"
@@ -45,8 +57,24 @@ $GP
 EOF
   cp "$SCAN" .goldpeak_frame.jpg
   cp "$SCAN" "archive/$DAY/peak_${G_WHICH}.jpg"     # local record of this window's best
-  # publish IMMEDIATELY (Simon 2026-07-28): the peak goes to the front page and the
-  # index as soon as it is taken; window close re-publishes the final state (idempotent)
-  bash gold_publish.sh || log "live publish helper failed"
-  log "new peak ($G_WHICH, blend $G_BLEND) saved + published live"
+  # publish ONLY the correct-position image (Simon 2026-07-28): approach frames are
+  # saved locally; the front page and index update the moment a frame lands within
+  # 0.3 deg of TARGET_ELEV. Window close still finalizes whatever best exists.
+  ATPOS="$("$PY" - <<'PYCHK'
+import json, sys
+sys.path.insert(0, ".")
+from goldpeak import TARGET_ELEV
+try:
+    s = json.load(open(".golden_peak.json"))
+    print("OK" if abs(float(s["sun_elev"]) - TARGET_ELEV[s["which"]]) <= 0.3 else "NO")
+except Exception:
+    print("NO")
+PYCHK
+)"
+  if [ "$ATPOS" = "OK" ]; then
+    bash gold_publish.sh || log "live publish helper failed"
+    log "new peak ($G_WHICH, blend $G_BLEND) AT TARGET -> published live"
+  else
+    log "new peak ($G_WHICH, blend $G_BLEND) saved (approach; publish at target)"
+  fi
 fi
