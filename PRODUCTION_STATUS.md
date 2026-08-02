@@ -40,8 +40,11 @@ authoritative.
 
 - `publish_live.py` velocity now divided by the elapsed epoch interval (px/day, was
   raw px/step); bundle carries `velocity_units` and `velocity_epochs`. **Deployed to
-  akdeniz pending host availability** (host unreachable at fix time; production/ copy
-  is fixed and is the deploy source).
+  akdeniz 2026-08-02** (backup `akdeniz:~/publish_live.py.bak-preveldeploy-20260802`);
+  the deploy had been waiting on the transport outage recorded below, so every bundle
+  published before that date carries raw px/step velocity — for the nightly cadence
+  that actually ran, the two differ by the fit-epoch interval's departure from 1.0 d
+  (~11% on the last state pair).
 - `flatfield.py` now rejects unsupported `schema` values on load and appends per-tick
   provenance (model timestamp, tmap hash, code version, `.spot_apply_on` state, lock
   diagnostics) to `spot_provenance.csv`. Deployed to pandr 2026-07-28.
@@ -52,3 +55,33 @@ authoritative.
   units documented here to resolve the referee's flag.
 - Note: `.spot_apply_on` is an external enable flag; its per-tick state is now logged
   in the provenance file. The corrector ships disabled by default.
+
+## Transport outage 2026-07-29 → 2026-08-02 (akdeniz could not reach pandr)
+
+CMU wifi clients stopped being routable from the wired subnets, so every
+akdeniz→pandr SSH returned "No route to host" (the name still resolves to
+172.26.24.19). Both consumers fail soft and only log, so nothing alarmed:
+
+- `daily_refiner.sh` frame rsync failed from 07-29 → `akdeniz:~/refiner/frames`
+  froze at 07-28 (it kept refining stale frames and still supplied `scurve`).
+- `publish_live.py` push failed 07-29/07-30; from 07-31 it refused earlier still
+  ("only 0 usable frames/channel") because the frozen frame directory had aged out
+  of its 2-day map window.
+
+Net effect: `pandr:~/monitor/{spot_model.json,spot_tmap.npy}` stayed at the 07-28
+bundle for five days while the tracked centre moved (1297.7,131.8) → (1317.6,119.0).
+Velocity extrapolation held x to within a few px but ran ~15 px high in y, and the
+bundle would have crossed `flatfield.py`'s >7-day staleness tier into fallback on
+08-04. Capture, fusion, golden-hour publishing and the ganesha mirror were unaffected
+throughout (they are outbound from pandr).
+
+Fixed 2026-08-02 by routing akdeniz→pandr through the existing ganesha:2202 reverse
+tunnel via an ssh_config alias on the original hostname — see
+`production/akdeniz/ssh_config.pandr`. Frame directory resynced (bulk from the ganesha
+mirror over wired, newest day from pandr). Pre-outage bundle preserved on pandr as
+`spot_model.json.bak-stale20260728` / `spot_tmap.npy.bak-stale20260728`.
+
+Residual gap: the silence itself. Both jobs still only log their failures, and the
+nightly tracker's `ALARM`/`REJECTED` lines (the blemish is now ~119 px from the frame
+top, so the background annulus can no longer be seated, and 08-01 acceptance regressed
+to 0.84 removal) are likewise log-only. No alert transport is wired — see Known gaps.

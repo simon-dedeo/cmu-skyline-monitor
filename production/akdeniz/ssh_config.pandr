@@ -1,0 +1,35 @@
+# Audit copy of the pandr stanza appended to akdeniz:~/.ssh/config on 2026-08-02.
+# (akdeniz's full ~/.ssh/config also has an unrelated bridges2 host; backup of the
+# pre-change file is akdeniz:~/.ssh/config.bak-20260802.)
+#
+# WHY: from 2026-07-29 akdeniz could no longer reach pandr at its wifi address --
+# the name still resolves (172.26.24.19) but connections return "No route to host":
+# CMU wifi clients stopped being reachable from the wired subnets. Nothing alarmed,
+# because both consumers fail soft:
+#   * daily_refiner.sh  logs "frame sync FAILED" and refines stale frames
+#   * spotnight_cron.sh logs "publish_live FAILED (live keeps last good)"
+# so the live corrector on pandr silently served a 2026-07-28 transmittance map for
+# five days while the blemish walked ~20 px in x and ~13 px in y, and publish_live
+# additionally began refusing outright ("only 0 usable frames/channel") once the
+# frozen frame directory aged past its 2-day map window.
+#
+# FIX: reach pandr through the reverse tunnel it already maintains on ganesha:2202
+# (registry: ganesha ~simon/REVERSE_TUNNELS.md; the tunnel is launchd KeepAlive
+# com.lsm.tunnel on pandr and had 11 days' unbroken uptime when this was written).
+# Keeping the ORIGINAL hostname as the alias means daily_refiner.sh, publish_live.py
+# and spotnight_cron.sh need no edits -- and they keep working unchanged if CMU
+# routing is ever restored.
+
+Host pandr.wifi.local.cmu.edu pandr
+    HostName localhost
+    Port 2202
+    User proofsandreasons
+    ProxyJump simon@ganesha.lan.cmu.edu
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    # pin the host key under a stable name: the endpoint is ganesha loopback, and
+    # [localhost]:2202 would collide with any other tunnel that reuses the port
+    HostKeyAlias pandr-tunnel
+    StrictHostKeyChecking accept-new
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
