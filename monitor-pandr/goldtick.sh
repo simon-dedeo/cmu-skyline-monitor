@@ -19,6 +19,17 @@ log(){ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [goldtick] $*" >>"$LOG"; }
 W="$("$PY" goldpeak.py --window data.json 2>/dev/null)"
 if [ "$W" = "morning" ] || [ "$W" = "evening" ]; then
   echo "$W" > .gold_window                        # mark the window active
+  # EXACT-POSITION capture (Simon 2026-07-28): if the sun crosses TARGET_ELEV within
+  # this tick, sleep so the 3-exposure bracket is centred on the crossing second.
+  TT="$("$PY" goldpeak.py --target-time data.json 2>/dev/null)"
+  if [ -n "$TT" ] && [ "$TT" != "NONE" ]; then
+    NOWS=$(date +%s); DT=$((TT - NOWS - 12))
+    if [ "$DT" -gt 0 ] && [ "$DT" -le 170 ]; then
+      log "target crossing in $((DT+12))s -> sleeping ${DT}s for exact-position capture"
+      touch .gold_exact
+      sleep "$DT"
+    fi
+  fi
   # Run the scan directly: SkyCam.app gets the camera grant via `open` (goldscan.sh),
   # and this LaunchAgent already runs in the GUI session, so no ssh->localhost hop is
   # needed (that was the old-camera Big-Sur trick, which doesn't grant camera on
@@ -38,18 +49,21 @@ except Exception:
 if s.get("which"):
     g = {k: s.get(k) for k in ("which", "time", "date", "ts", "sun_elev",
                                "sky_hue", "sky_hue_name", "img_hue", "img_hue_name",
-                               "campus_hue", "campus_hue_name", "exp_ms", "gain")}
+                               "campus_hue", "campus_hue_name", "exp_ms", "gain",
+                               "gold_score", "red_pct", "amber_pct")}
     g["blend"] = round(s.get("blend", 0))
     open("golden.js", "w").write("window.GOLDEN=" + json.dumps(g) + ";")
+    import sys; sys.path.insert(0, "."); from goldpeak import RULE_ID
     print("|".join(str(s.get(k, "")) for k in
-                   ("date", "which", "time", "sun_elev", "sky_hue", "sky_hue_name")))
+                   ("date", "which", "time", "sun_elev", "sky_hue", "sky_hue_name",
+                    "gold_score", "red_pct")) + "|" + RULE_ID)
 PY
 )"
   if [ -n "$GIDX" ]; then
-    IFS='|' read -r F_DATE F_WHICH F_TIME F_SE F_SH F_SN <<EOF
+    IFS='|' read -r F_DATE F_WHICH F_TIME F_SE F_SH F_SN F_GS F_RP F_RULE <<EOF
 $GIDX
 EOF
-    "$PY" goldindex.py "$F_DATE" "$F_WHICH" "$F_TIME" "$F_SE" "$F_SH" "$F_SN" >>"$LOG" 2>&1
+    "$PY" goldindex.py "$F_DATE" "$F_WHICH" "$F_TIME" "$F_SE" "$F_SH" "$F_SN" "$F_GS" "$F_RP" "$F_RULE" >>"$LOG" 2>&1
     # Stage all four with their final names and send in ONE scp connection (-C).
     SCP="scp -q -C -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new"
     [ -f "$SSH_KEY" ] && SCP="$SCP -i $SSH_KEY"
@@ -57,6 +71,13 @@ EOF
     cp .goldpeak_frame.jpg "$TMP/sky.jpg"
     cp .goldpeak_frame.jpg "$TMP/peak_${F_DATE}_${F_WHICH}.jpg"
     cp golden.js goldindex.js "$TMP/"
+    # 1600-px thumbnail for hours.html (it used to load the 4K file as its thumbnail)
+    "$PY" - "$TMP/peak_${F_DATE}_${F_WHICH}.jpg" "$TMP/thumb_${F_DATE}_${F_WHICH}.jpg" <<'PYT' || log "thumb generation failed"
+import sys, cv2
+img = cv2.imread(sys.argv[1]); h, w = img.shape[:2]
+if w > 1600: img = cv2.resize(img, (1600, int(round(h * 1600 / w))), interpolation=cv2.INTER_AREA)
+cv2.imwrite(sys.argv[2], img, [cv2.IMWRITE_JPEG_QUALITY, 88])
+PYT
     if $SCP "$TMP"/* "$DEST_HOST:$DEST_DIR/"; then
       log "window $F_WHICH closed -> uploaded final peak ($F_TIME) + index to santafe"
     else
@@ -74,6 +95,10 @@ EOF
       log "ganesha golden upload FAILED"
     fi
     rm -rf "$TMP"
+    # Post the FINAL pick to X/@LaboratoryMinds (Simon 2026-09-16). gold_tweet.py decides
+    # which windows to post (TWEET_WINDOWS in .twitter_env, default morning), is idempotent
+    # per window, and is fail-soft -- it never returns non-zero, so the cleanup below runs.
+    "$PY" gold_tweet.py >>"$LOG" 2>&1 || log "gold_tweet.py errored"
   fi
 fi
 rm -f .gold_window .goldpeak_frame.jpg goldscan/*.jpg 2>/dev/null

@@ -23,20 +23,43 @@
   .cell{border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);position:relative}
   .cell.empty{background:var(--panel);min-height:150px;display:flex;align-items:center;justify-content:center;
     color:var(--dimmer);font-family:var(--mono);font-size:.8rem}
+  .cell a.shot{display:block;position:relative;text-decoration:none}
   .cell img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
+  /* click a frame for the FULL-RESOLUTION 4K JPEG (the thumbnail above is the same file,
+     cropped to 16/10 by object-fit) */
+  .cell a.shot::after{content:"full size ↗";position:absolute;right:8px;top:8px;
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.04em;color:var(--ink);
+    background:rgba(11,13,18,.72);border:1px solid var(--line);border-radius:6px;
+    padding:3px 7px;opacity:0;transition:opacity .15s}
+  .cell a.shot:hover::after,.cell a.shot:focus-visible::after{opacity:1}
+  .cell a.shot:focus-visible{outline:2px solid var(--sky);outline-offset:-2px}
   .meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 12px;font-family:var(--mono)}
   .lbl{font-size:.82rem;color:var(--ink);font-weight:600}
   .lbl .w{color:var(--amber)}
   .st{font-size:.68rem;color:var(--dimmer);text-align:right}
   .empty-state{color:var(--dim);font-family:var(--mono);text-align:center;padding:40px}
+  /* pick-rule badges (2026-09-16): why this frame won */
+  .badges{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;font-family:var(--mono);font-size:.64rem;letter-spacing:.03em}
+  .b{border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--dim);background:rgba(255,255,255,.03)}
+  .b.col{color:var(--amber);border-color:rgba(255,182,74,.45)}
+  .b.grey{color:var(--sky);border-color:rgba(102,205,255,.35)}
+  .b.old{color:var(--dimmer);border-style:dashed}
+  .b.new{color:#9be59b;border-color:rgba(155,229,155,.4)}
+  .note{max-width:1100px;margin:0 auto 18px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;
+    background:rgba(155,229,155,.04);font-family:var(--mono);font-size:.74rem;color:var(--dim);line-height:1.55}
+  .note b{color:#9be59b;font-weight:600}
   @media(max-width:640px){.pair{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
   <h1>Recent golden hours</h1>
-  <div class="sub">CMU Skyline Monitor · the inferred peak-golden frame for each morning &amp; evening · <a href="dashboard.html">live dashboard ↗</a></div>
+  <div class="sub">CMU Skyline Monitor · the inferred peak-golden frame for each morning &amp; evening · click any frame for full size · <a href="https://proofsandreasons.io/dashboard.html">live dashboard ↗</a></div>
 </header>
+<div class="note"><b>How the peak is chosen.</b> Within ±3° of the horizon the peak is the frame whose sky is <b>reddest</b>
+  (≥1% red/amber); when nothing is coloured it is the frame nearest <b>−2°</b>, where the sky is deepest and the campus lights are on.
+  Evenings score all three sky thirds (sunset colour here lands east and centre). Rule updated 16 Sep 2026 and applied to every day below;
+  frames re-chosen under it say so.</div>
 <div id="days"><div class="empty-state">loading…</div></div>
 <script>
 const SANTAFE="https://sites.santafe.edu/~simon/";
@@ -46,10 +69,29 @@ function cell(label,e){
   if(!e) return `<div class="cell empty">${label} · —</div>`;
   const st=[]; if(e.sun_elev!=null)st.push(`sun ${e.sun_elev}°`);
   if(e.sky_hue!=null)st.push(`sky ${e.sky_hue}°${e.sky_hue_name?' '+e.sky_hue_name:''}`);
-  return `<div class="cell"><img loading="lazy" src="${SANTAFE+e.file}" alt="${label} golden hour">
+  const url=SANTAFE+e.file;
+  return `<div class="cell"><a class="shot" href="${url}" target="_blank" rel="noopener"
+      title="${label} golden hour — open full-resolution image">
+      <img loading="lazy" src="${e.thumb?SANTAFE+e.thumb:url}" alt="${label} golden hour"></a>
     <div class="meta"><span class="lbl"><span class="w">${label}</span> · ${e.time||''}</span>
-      <span class="st">${st.join(' · ')}</span></div></div>`;
+      <span class="st">${st.join(' · ')}</span></div>
+    ${badges(e)}${repick(e)}</div>`;
 }
+const pct=v=>(v==null?'':(Math.round(v*10)/10)+'%');
+function tierBadge(e){
+  if(e.tier==='coloured'||(e.tier==null&&e.gold_score>=1))
+    return `<span class="b col">coloured · ${pct(e.red_pct)} red</span>`;
+  if(e.tier==='grey'||(e.tier==null&&e.gold_score!=null))
+    return `<span class="b grey">grey · nearest −2°</span>`;
+  return '';
+}
+function badges(e){
+  const b=[tierBadge(e)];
+  if(e.repicked_from&&e.repicked_from.time)
+    b.push(`<span class="b old" title="chosen again under the 16 Sep 2026 rule">re-picked · was ${e.repicked_from.time} (sun ${e.repicked_from.sun_elev}°)</span>`);
+  const x=b.filter(Boolean); return x.length?`<div class="badges">${x.join('')}</div>`:'';
+}
+function repick(e){ return ''; }
 function render(idx){
   if(!idx||!idx.length){ document.getElementById('days').innerHTML='<div class="empty-state">No golden hours recorded yet — check back after the next sunrise or sunset.</div>'; return; }
   const byDate={};

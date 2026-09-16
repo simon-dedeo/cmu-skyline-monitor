@@ -16,7 +16,19 @@ DAY="$(date -u +%Y-%m-%d)"; HHMM="$(date -u +%H%M)"
 log(){ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [goldscan] $*" >>"$LOG"; }
 
 source "$(dirname "$0")/camlock.sh"
-camlock_acquire "$LOG" || exit 0     # busy (5-min tick mid-capture) -> skip this minute
+if [ -f .gold_exact ]; then
+  # exact-position tick: the crossing happens once -- retry the lock briefly rather
+  # than skipping the minute
+  OK=""
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if camlock_acquire "$LOG"; then OK=1; break; fi
+    sleep 3
+  done
+  rm -f .gold_exact
+  [ -n "$OK" ] || exit 0
+else
+  camlock_acquire "$LOG" || exit 0   # busy (5-min tick mid-capture) -> skip this minute
+fi
 
 mkdir -p goldscan "archive/$DAY"
 SCAN="goldscan/${HHMM}_sky.jpg"
@@ -45,5 +57,33 @@ $GP
 EOF
   cp "$SCAN" .goldpeak_frame.jpg
   cp "$SCAN" "archive/$DAY/peak_${G_WHICH}.jpg"     # local record of this window's best
-  log "new peak ($G_WHICH, blend $G_BLEND) saved locally — upload at window close"
+  # publish whenever the running peak is INSIDE the pick band (Simon 2026-08-18). The
+  # pick is now dynamic within PICK_RANGE and scored on sky redness, so any in-band peak
+  # is a legitimate display frame; a later, redder in-band frame simply republishes.
+  # (Was: publish only within 0.3 deg of a single TARGET_ELEV.)
+  ATPOS="$("$PY" - <<'PYCHK'
+import json, sys
+sys.path.insert(0, ".")
+from goldpeak import PICK_RANGE, COLOUR_MIN, GREY_TARGET
+try:
+    s = json.load(open(".golden_peak.json"))
+    e = float(s["sun_elev"]); gs = float(s.get("gold_score") or 0.0)
+    gt = GREY_TARGET.get(s.get("which"), 0.0)
+    inband = PICK_RANGE[0] <= e <= PICK_RANGE[1]
+    # Publish live for a COLOURED peak immediately (rare, and the whole point). On a grey
+    # day the running peak improves on almost every frame of a 6-deg-wide band, which would
+    # re-ship a 4K JPEG ~10x per window; santafe transfer is deliberately sparse, so grey
+    # peaks only go live near the grey target (-2 deg; the old 0.3-deg
+    # behaviour) and the window-close finalizer in goldtick.sh publishes whatever best exists.
+    print("OK" if inband and (gs >= COLOUR_MIN or abs(e - gt) <= 0.3) else "NO")
+except Exception:
+    print("NO")
+PYCHK
+)"
+  if [ "$ATPOS" = "OK" ]; then
+    bash gold_publish.sh || log "live publish helper failed"
+    log "new peak ($G_WHICH, blend $G_BLEND) IN BAND -> published live"
+  else
+    log "new peak ($G_WHICH, blend $G_BLEND) saved (grey/out-of-band; finalizer publishes)"
+  fi
 fi

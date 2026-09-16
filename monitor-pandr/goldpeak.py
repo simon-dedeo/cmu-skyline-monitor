@@ -4,15 +4,12 @@
 Called every capture tick. Given the latest sky frame + data.json (for the solar
 golden-hour windows) it:
   * determines whether NOW is inside the morning or evening golden-hour window;
-  * picks the frame captured NEAREST sun elevation -1 deg (1 deg below the
-    horizon), morning and evening alike (Simon 2026-07-16, chosen after
-    reviewing the 7/15-16 review panels: the -1 deg point is the right balance
-    for both windows). Elevation is monotonic within a window, so the running
-    -max logic peaks exactly once. The old golden-blend metric
+  * picks, inside the PICK_RANGE elevation band, the frame whose sunward sky is
+    REDDEST (gold_score >= COLOUR_MIN); on a colourless day it falls back to the
+    frame nearest GREY_TARGET[which] (-2 deg for both windows). The old
+    golden-blend metric
         blend = saturation * (warmth + 15) * exp(-((bright-110)/55)^2)
-    is still computed and reported for science/panels — it just no longer
-    drives the pick (its evening drift past sunset was structural; see the
-    7/16 panels artifact);
+    is still computed and reported for science/panels and breaks ties;
   * keeps a per-window running peak in .golden_peak.json;
   * prints 'UPLOAD|which|H:MM AM/PM|YYYY-MM-DD|blend|golden%|horizon%|bright|sat|warm'
     when the frame is a new peak (capture.sh uploads it + writes golden.js), else
@@ -30,7 +27,59 @@ import solar                                   # sun_elevation() for the caption
 STATE = os.path.join(HERE, ".golden_peak.json")
 ROI_TOP = 0.62          # top 62% (sky + upper façades) for the golden warm/sat/blend stats
 BRIGHT_FLOOR = 50       # full-frame mean; reject near-black twilight frames
-TARGET_ELEV = {"morning": 3.46, "evening": -0.63}   # per-window, from Simon picks 2026-07-21 (morning 1032U, evening 0044U)
+# --- PICK RULE (Simon 2026-08-18): choose the peak DYNAMICALLY inside an elevation BAND,
+#     scored by how red the sky actually is, instead of snapping to one target elevation.
+#     Why: a 30-day measurement of the archive (goldcrit.py + ~/Desktop/MBP/golden_analysis/)
+#     put the red-sky optimum at elev -3..+3 for BOTH windows, and showed the old -1.0 snap
+#     could not tell a spectacular red sunrise from a flat grey one at the same elevation
+#     (7 of 30 mornings and 3 of 30 evenings had any red at all).
+PICK_RANGE = (-3.0, 3.0)
+# GREY-DAY TARGET (Simon 2026-09-16). On the ~70% of mornings with no colour at all the pick
+# used to fall to the horizon (elev 0), which gave a flat, washed-out blue-grey frame. Reviewing
+# 29 mornings since 08-19 (19 of them grey and all pinned at 0.0): at elev ~-2 the same
+# mornings show a deep-blue sky, twilight gradient and lit windows -- much the better frame.
+# So colourless frames now rank by proximity to GREY_TARGET[which], not to 0. The same
+# review of 26 evenings (contact sheets at +1..-2.5) found the same thing, so evening is -2
+# too. BRIGHT_FLOOR still applies, so on a very dark overcast day the pick slides from -2
+# toward the horizon until the campus is properly lit (5/19 grey mornings, 4/26 evenings).
+GREY_TARGET = {"morning": -2.0, "evening": -2.0}
+RULE_ID = "2026-09-16"  # bump when the pick rule changes; stored per index entry so
+                        # hours.html can say which rule chose each frame
+TARGET_ELEV = dict(GREY_TARGET)                   # exact-position minute: goldtick.sh's
+                                                  # --target-time centres the HDR bracket on
+                                                  # this crossing. No longer drives the pick;
+                                                  # kept defined so importers keep working.
+# The glow is LOCALISED, so each window scores one or more sky sub-regions and the colour
+# score is the MAX over them (fractions, never a mean: full-width averaging dilutes a vivid
+# sunrise to nothing). Camera faces ~north: ENE sunrise glow lands in the RIGHT third.
+#   morning: right third only (validated on 29 mornings, 08-19..09-16: all 10 coloured
+#            mornings picked correctly).
+#   evening (Simon 2026-09-16 review of 26 evenings): sunset colour here is lit cloud
+#            UNDERSIDE and it is strongest in the EAST and CENTRE thirds, not the west third
+#            near the sun -- 08-27: W 33% / C 50% / E 76%; 09-02: W 0.3% / E 43% (missed
+#            entirely by the old west-only region, picked grey at 0.0). So evening = max over
+#            all three thirds. Rows stop at 36% (not 42%) because the tall building's roofline
+#            enters the centre/right thirds at ~38.5% and, lit by the low pre-sunset sun, read
+#            as 3-7% "red" at elev +2.2..+2.9 on every clear evening -- a false colour peak
+#            that would drag the pick 20 min before sunset. With the cut, every evening with
+#            no visible event scores 0.0 in-band. Fractions: (y0, y1, x0, x1).
+SUN_SKY = {"morning": [(0.07, 0.42, 0.667, 0.99)],
+           "evening": [(0.07, 0.36, 0.026, 0.339), (0.07, 0.36, 0.339, 0.667),
+                       (0.07, 0.36, 0.667, 0.99)]}
+# A strongly red sky overrides BRIGHT_FLOOR. The best sunrise in the whole archive
+# (2026-08-02 10:28Z, 69% red) has a full-frame mean of 20 -- the floor of 50 would have
+# vetoed exactly the frame we most want. This deliberately relaxes the "campus is never a
+# silhouette" rule, but ONLY when the sky is unambiguously the subject.
+RED_OVERRIDE_PCT = 5.0
+BRIGHT_HARD = 12        # below this a frame is unusable no matter how red
+COLOUR_MIN = 1.0        # gold_score (%) above which a frame counts as genuinely COLOURED.
+                        # Raised from 0.05 on 2026-08-19 after measuring 1,067 in-band archive
+                        # frames: among frames with NO real event (red<1%), gold_score still
+                        # reaches 0.32 at p99 and 6.1 at worst, so 0.05 let noise-level warmth
+                        # promote a grey frame into the coloured tier and drag the pick away
+                        # from the horizon. At 1.0 the coloured tier holds 3.6% of in-band
+                        # frames vs 31 known real events -- a clean separation. (1.0 is also
+                        # the "hit rate" threshold the elevation study was built on.)
 
 
 def hue_name(deg):
@@ -154,7 +203,33 @@ def parse(v):
     return dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc)
 
 
-def stats(path):
+def _region_colour(img, region):
+    """(red_pct, amber_pct, gold_score) for one (y0, y1, x0, x1) fractional sky region."""
+    H, W = img.shape[:2]
+    y0, y1, x0, x1 = region
+    roi = img[int(y0 * H):int(y1 * H), int(x0 * W):int(x1 * W)]
+    if roi.size == 0:
+        return 0.0, 0.0, 0.0
+    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    hh = hsv[:, :, 0].astype(np.float32) * 2.0            # cv2 hue 0-179 -> degrees
+    ss, vv = hsv[:, :, 1], hsv[:, :, 2]
+    ok = (ss >= 60) & (vv >= 40) & (vv <= 252)
+    red = ok & ((hh <= 25) | (hh >= 335))
+    amber = ok & (hh > 25) & (hh <= 50)
+    rp, ap = float(red.mean()) * 100.0, float(amber.mean()) * 100.0
+    return rp, ap, rp + 0.5 * ap
+
+
+def sun_sky_stats(img, which):
+    """Red / amber pixel FRACTIONS of the sky sub-region(s) where this window's glow appears,
+    reporting the region with the highest gold_score (see SUN_SKY). Fractions, never a mean:
+    the glow covers only part of the sky, so an average reads blue even during a vivid
+    sunrise. Returns (red_pct, amber_pct, gold_score) with red weighted double against
+    amber -- amber alone is also ordinary daytime haze."""
+    return max((_region_colour(img, r) for r in SUN_SKY[which]), key=lambda t: t[2])
+
+
+def stats(path, which=None):
     img = cv2.imread(path)
     if img is None:
         return None
@@ -173,9 +248,13 @@ def stats(path):
     glow = float(((lh[:, :, 0] >= 8) & (lh[:, :, 0] <= 25) &
                   (lh[:, :, 1] >= 60) & (lh[:, :, 2] >= 40) & (lh[:, :, 2] <= 250)).mean()) * 100
     blend = sat * (warm + 15) * math.exp(-((bright - 110) / 55) ** 2)
-    return dict(bright=bright, warm=warm, sat=sat, gfrac=gfrac, glow=glow, blend=blend,
-                sky_hue=sky_hue_top(img), img_hue=img_hue_full(img),
-                campus_hue=campus_hue_full(img))
+    out = dict(bright=bright, warm=warm, sat=sat, gfrac=gfrac, glow=glow, blend=blend,
+               sky_hue=sky_hue_top(img), img_hue=img_hue_full(img),
+               campus_hue=campus_hue_full(img))
+    if which in SUN_SKY:
+        rp, ap, gs = sun_sky_stats(img, which)
+        out.update(red_pct=rp, amber_pct=ap, gold_score=gs)
+    return out
 
 
 def current_window(data_path):
@@ -195,6 +274,33 @@ def current_window(data_path):
 
 
 def main():
+    # --target-time <data.json>: print the epoch second at which the sun crosses
+    # TARGET_ELEV in the active window (bisected to ~1 s), or NONE. No camera.
+    if len(sys.argv) > 1 and sys.argv[1] == "--target-time":
+        which = current_window(sys.argv[2] if len(sys.argv) > 2 else "data.json")
+        if which not in TARGET_ELEV:
+            print("NONE"); return
+        tgt = TARGET_ELEV[which]
+        rising = (which == "morning")
+        now = datetime.datetime.now(datetime.timezone.utc)
+        prev_t, prev_e = now, solar.sun_elevation(now)
+        for m in range(1, 181):
+            t2 = now + datetime.timedelta(minutes=m)
+            e2 = solar.sun_elevation(t2)
+            crossed = (prev_e < tgt <= e2) if rising else (prev_e > tgt >= e2)
+            if crossed:
+                lo, hi = prev_t, t2
+                for _ in range(22):
+                    mid = lo + (hi - lo) / 2
+                    em = solar.sun_elevation(mid)
+                    before = (em < tgt) if rising else (em > tgt)
+                    if before:
+                        lo = mid
+                    else:
+                        hi = mid
+                print(int(lo.timestamp())); return
+            prev_t, prev_e = t2, e2
+        print("NONE"); return
     # --window <data.json>: just print the active golden window (or NONE), no camera.
     if len(sys.argv) > 1 and sys.argv[1] == "--window":
         data_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "data.json")
@@ -206,8 +312,19 @@ def main():
     if not which:
         print("NONE"); return
 
-    st_img = stats(img_path)
-    if st_img is None or st_img["bright"] < BRIGHT_FLOOR:
+    # Outside the pick band there is nothing to choose -- check before decoding the frame.
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    sun_elev_now = solar.sun_elevation(now_utc)
+    if not (PICK_RANGE[0] <= sun_elev_now <= PICK_RANGE[1]):
+        print("HOLD"); return
+
+    st_img = stats(img_path, which)
+    if st_img is None:
+        print("HOLD"); return
+    # Brightness floor, with the documented red override (see RED_OVERRIDE_PCT).
+    if (st_img["bright"] < BRIGHT_HARD
+            or (st_img["bright"] < BRIGHT_FLOOR
+                and st_img.get("gold_score", 0.0) < RED_OVERRIDE_PCT)):
         print("HOLD"); return
 
     local = datetime.datetime.now(datetime.timezone.utc).astimezone()
@@ -219,11 +336,21 @@ def main():
     if st.get("window_id") != window_id:
         st = {"window_id": window_id, "best": -1e9}
 
-    # Pick score = negative distance from the -1 deg choice point; the frame
-    # closest to TARGET_ELEV wins the window. blend is still in the stats below.
-    now_utc = datetime.datetime.now(datetime.timezone.utc)
-    sun_elev_now = solar.sun_elevation(now_utc)
-    score = -abs(sun_elev_now - TARGET_ELEV[which])
+    # Pick score, lexicographic in two TIERS (magnitudes chosen so tiers cannot overlap:
+    # blend maxes out around 1e4, so 1e6/1e12 separations are safe).
+    #   COLOURED tier -- any frame with real colour beats every grey frame, and among them
+    #     the reddest wins. This is the whole point of the change.
+    #   GREY tier -- on the ~75% of days with NO colour at all, rank by proximity to
+    #     GREY_TARGET[which] (-2 for both; see the note at GREY_TARGET). Ranking
+    #     grey frames by blend alone picked the BRIGHTEST frame, which is always the +3 edge
+    #     of the band: on a grey evening that put the display frame ~20 min before sunset.
+    #     A fixed grey target keeps a consistent framing when nothing colourful is on offer.
+    #     blend breaks ties.
+    gs = st_img.get("gold_score", 0.0)
+    if gs >= COLOUR_MIN:
+        score = 1e12 + gs * 1e6 + st_img["blend"]
+    else:
+        score = -abs(sun_elev_now - GREY_TARGET[which]) * 1e6 + st_img["blend"]
 
     if score > st.get("best", -1e9):
         tlabel, dlabel = local.strftime("%-I:%M %p"), local.strftime("%Y-%m-%d")
@@ -247,10 +374,12 @@ def main():
         j = lambda v: "null" if v is None else v
         # NB: goldscan.sh parses this line POSITIONALLY (fields 2 & 10) — only
         # ever APPEND new fields.
-        print("UPLOAD|{}|{}|{}|{}|{}|{}|{}|{}|{:.0f}|{}|{}|{}|{}|{}".format(
+        print("UPLOAD|{}|{}|{}|{}|{}|{}|{}|{}|{:.0f}|{}|{}|{}|{}|{}|{:.2f}|{:.2f}|{:.2f}".format(
             which, tlabel, dlabel, j(sun_elev), j(sky_hue), sname,
             j(exp_ms), j(gain), st_img["blend"], ts, j(img_hue), iname,
-            j(campus_hue), cname))
+            j(campus_hue), cname,
+            st_img.get("gold_score", 0.0), st_img.get("red_pct", 0.0),
+            st_img.get("amber_pct", 0.0)))
     else:
         print("HOLD")
 

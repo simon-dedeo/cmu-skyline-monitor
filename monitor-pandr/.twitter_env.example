@@ -1,0 +1,15 @@
+# Copy to ~/monitor/.twitter_env and chmod 600. Never commit the real file.
+# From https://developer.x.com -> the app attached to @LaboratoryMinds, with
+# "Read and write" user-authentication permission. Regenerate the access token
+# AFTER setting Read+Write, or it stays read-only.
+X_API_KEY=
+X_API_SECRET=
+X_ACCESS_TOKEN=
+X_ACCESS_SECRET=
+# The portal's own names also work: consumer_key, secret_key, access_token,
+# access_token_secret. bearer_token / client_id / client_secret are NOT needed
+# (posting uses OAuth 1.0a user context).
+# Which golden windows to post (comma-separated): morning, evening
+TWEET_WINDOWS=morning
+# Downscale width in px for the uploaded image
+TWEET_MAX_W=2048

@@ -17,3 +17,16 @@ spot_paper/*.out
 spot_paper/*.toc
 spot_paper/*.synctex.gz
 spot_paper/*log
+monitor-pandr/.twitter_env
+monitor-pandr/.tweeted/
+monitor-pandr/.tweet_frame.jpg
+# X/Twitter key files (never commit)
+consumer_key
+secret_key
+bearer_token
+access_token
+access_token_secret
+client_id
+client_secret
+# rendered timelapses are too large for GitHub (661 MB); keep them out of the repo
+*.mp4
