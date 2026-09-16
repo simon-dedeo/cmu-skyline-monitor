@@ -34,6 +34,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 GAIN = os.path.join(HERE, ".spot_gain.npy")
 LOG  = os.path.join(HERE, ".spot_log.csv")
 MODEL = os.path.join(HERE, "spot_model.json")   # written by the daily refiner (akdeniz)
+LOCKF = os.path.join(HERE, ".spot_lock.json")    # last per-tick template-lock measurement
 TMAP  = os.path.join(HERE, "spot_tmap.npy")      # empirical per-pixel transmittance window (refiner)
 
 # --- known blemishes, fractional (fx, fy) so this is resolution-independent -----------------
@@ -70,8 +71,19 @@ def _load_tmap():
         m = mm.get("tmap")
         if not m:
             return None
-        return np.load(TMAP), int(m["x0"]), int(m["y0"]), int(m["half"]), mm.get("scurve")
-    except Exception:
+        T = np.load(TMAP)
+        if mm.get("schema") not in (2,):
+            raise ValueError(f"unsupported model schema {mm.get('schema')!r}")
+        want = mm.get("tmap_sha256_16")
+        if want:
+            import hashlib
+            if hashlib.sha256(T.tobytes()).hexdigest()[:16] != want:
+                raise ValueError("tmap/model hash mismatch (torn publish?)")
+        if not np.isfinite(T).all():
+            raise ValueError("tmap contains non-finite values")
+        return T, int(m["x0"]), int(m["y0"]), int(m["half"]), mm.get("scurve"), mm
+    except Exception as e:
+        print("flatfield tmap rejected:", e, file=sys.stderr)
         return None
 
 # --- corrector geometry, as fractions of frame WIDTH (validated at 4K: foot95 ring100-150) --
@@ -98,6 +110,27 @@ def _lin_srgb(L):
     return np.where(L <= 0.0031308, 12.92 * L, 1.055 * L ** (1 / 2.4) - 0.055) * 255.0
 
 
+NO_RIVAL = -1.0                                  # sentinel: correlation surface has no rival peak
+
+
+def _rival_peak(cc, loc, w=12):
+    """Best rival LOCAL MAXIMUM of the template-match surface, more than w px (Chebyshev) away
+    from the winning peak -- i.e. a genuinely COMPETING hypothesis, not a neighbour on the same
+    plateau. Returns NO_RIVAL when there is no competing peak at all, which (measured) is the
+    common case for this smooth single-blob template."""
+    k = 2 * int(w) + 1
+    dil = cv2.dilate(cc, np.ones((k, k), np.uint8))
+    ys, xs = np.where(cc >= dil - 1e-9)
+    best = NO_RIVAL
+    for y, x in zip(ys, xs):
+        if max(abs(int(y) - loc[1]), abs(int(x) - loc[0])) <= w:
+            continue
+        v = float(cc[y, x])
+        if v > best:
+            best = v
+    return best
+
+
 def _correct(img):
     """Ungated correction: flatten every seeded spot on one BGR frame. Returns a new frame
     (or the input unchanged if no spot passed its gates). Fail-soft is handled by apply()."""
@@ -110,13 +143,160 @@ def _correct(img):
     #     map noise can't blow up; the divide only brightens, so no inverse spot. ------------------
     tm = _load_tmap()
     if tm is not None:
-        T, x0, y0, h, sc = tm
-        if x0 >= 0 and y0 >= 0 and y0 + 2 * h <= H and x0 + 2 * h <= W and T.shape == (2 * h, 2 * h, 3):
+        T, x0, y0, h, sc, mm = tm
+        # --- per-tick placement (2026-07-28): the blemish moves continuously (7-18 px
+        #     WITHIN a day, measured), so the dip content is aligned to the velocity-
+        #     extrapolated position on every tick. The window origin stays at the
+        #     published clamped values and the map CONTENT is warped (border T=1), because
+        #     shifting the origin cannot follow a blemish this close to the frame edge.
+        #     Anchor is tmap.mx/my -- where the dip content actually sits in the stack.
+        #     Back-compatible: models without the fields behave exactly as before. -------
+        tmm = (mm or {}).get("tmap", {}) or {}
+        rx = float(tmm.get("mx", tmm.get("bx", h)))
+        ry = float(tmm.get("my", tmm.get("by", h)))
+        vel, fe = (mm or {}).get("velocity"), (mm or {}).get("fit_epoch")
+        if vel and fe:
+            try:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                age = (now - datetime.datetime.fromisoformat(
+                    mm.get("updated", fe))).total_seconds() / 86400.0
+                if age > 7.0:
+                    raise RuntimeError(f"model {age:.1f}d old, skipping tmap path")
+                dt = (now - datetime.datetime.fromisoformat(fe)).total_seconds() / 86400.0
+                dt = min(max(dt, -0.5), 3.5)
+                sp0 = (mm.get("spots") or [{}])[0]
+                px = float(sp0.get("fx", 0)) * W + float(vel[0]) * dt
+                py = float(sp0.get("fy", 0)) * H + float(vel[1]) * dt
+                # prefer the most recent per-tick MEASUREMENT over pure prediction:
+                # the prediction only uses data through the fit epoch, the last lock
+                # saw the blemish minutes ago. Gated: fresh (<6 h), and within 40 px of
+                # the prediction so a corrupted lock can never walk the correction away.
+                try:
+                    lk = json.load(open(LOCKF))
+                    lts = datetime.datetime.fromisoformat(lk["ts"])
+                    lage = (now - lts).total_seconds() / 86400.0
+                    if 0.0 <= lage < 0.25 and lk.get("corr", 0) >= 0.45:
+                        lx2 = float(lk["cx"]) + float(vel[0]) * lage
+                        ly2 = float(lk["cy"]) + float(vel[1]) * lage
+                        if ((lx2 - px) ** 2 + (ly2 - py) ** 2) ** 0.5 <= 40.0:
+                            px, py = lx2, ly2
+                except Exception:
+                    pass
+                sxp = px - (x0 + rx)
+                syp = py - (y0 + ry)
+                mag = (sxp * sxp + syp * syp) ** 0.5
+                if mag > 40.0:                       # cap total extrapolated displacement
+                    sxp, syp = sxp * 40.0 / mag, syp * 40.0 / mag
+                if abs(sxp) > 0.5 or abs(syp) > 0.5:
+                    M2 = np.float32([[1, 0, sxp], [0, 1, syp]])
+                    T = np.stack([cv2.warpAffine(T[:, :, c], M2, (2 * h, 2 * h),
+                                                 flags=cv2.INTER_LINEAR,
+                                                 borderMode=cv2.BORDER_CONSTANT,
+                                                 borderValue=1.0) for c in range(3)], axis=2)
+                    rx, ry = rx + sxp, ry + syp
+            except RuntimeError as e:
+                print("flatfield tmap:", e, file=sys.stderr)
+                tm = None
+        if tm is not None and x0 >= 0 and y0 >= 0 and y0 + 2 * h <= H and x0 + 2 * h <= W and T.shape == (2 * h, 2 * h, 3):
             win = out[y0:y0 + 2 * h, x0:x0 + 2 * h]
             yy, xx = np.mgrid[0:2 * h, 0:2 * h]
-            ring = (np.sqrt((xx - h) ** 2 + (yy - h) ** 2) >= 105) & (np.sqrt((xx - h) ** 2 + (yy - h) ** 2) < 130)
+            prov = {"path": "tmap", "lock": 0, "pk": None, "pk2": None}
+            # --- TEMPLATE LOCK: measure where the dip actually is in THIS frame and snap
+            #     the map to it. Prediction alone cannot follow intraday migration.
+            try:
+                gray = _srgb_lin(win.mean(axis=2).astype(np.float32))
+                bgs = cv2.GaussianBlur(gray, (0, 0), 45)
+                dmap = cv2.GaussianBlur(np.clip(1.0 - gray / np.maximum(bgs, 1e-6), -0.1, 0.3)
+                                        .astype(np.float32), (0, 0), 4)
+                tpl0 = cv2.GaussianBlur((1.0 - T.mean(axis=2)).astype(np.float32), (0, 0), 4)
+                ty0, ty1 = int(max(ry - 60, 0)), int(min(ry + 60, 2 * h))
+                tx0, tx1 = int(max(rx - 60, 0)), int(min(rx + 60, 2 * h))
+                tpl = tpl0[ty0:ty1, tx0:tx1]
+                sy0, sy1 = max(ty0 - 25, 0), min(ty1 + 25, 2 * h)
+                sx0, sx1 = max(tx0 - 25, 0), min(tx1 + 25, 2 * h)
+                cc = cv2.matchTemplate(dmap[sy0:sy1, sx0:sx1], tpl, cv2.TM_CCOEFF_NORMED)
+                _, pk, _, loc = cv2.minMaxLoc(cc)
+                # ambiguity gate (review 2026-07-28): a decisive lock needs a clear
+                # winner -- mask the best peak and require the runner-up to be lower by
+                # a margin, else a cloud edge or contrail can tie and we must not lock.
+                # FIXED 2026-08-18. The old test masked only +/-8 px around the peak and
+                # took the best remaining PIXEL as the runner-up. But the template is a smooth
+                # r~38px blob further smoothed at sigma=4, so the 51x51 surface is one broad
+                # hill: the "runner-up" sat on that same hill and pk-pk2 ran ~0.045 against the
+                # 0.08 threshold. The gate therefore rejected ~94% of ticks -- including every
+                # clean lock -- and the corrector ran on velocity extrapolation alone while the
+                # blemish migrates 7-18 px/day. Evidence: 726 archived brackets replayed under
+                # the live model (see /tmp/lockprobe.csv, timelapse_tools/lockprobe.py); max
+                # margin EVER observed was 0.141. A typical surface has exactly ONE local
+                # maximum, so the runner-up must be a rival LOCAL MAXIMUM, not a plateau
+                # neighbour. Restores lock 5.7% -> 68% of daytime frames, with offsets that are
+                # temporally coherent (within-hour MAD 3.5/4.0 px).
+                # HONEST SCOPE of this gate (recomputed 2026-08-19): of 136 daytime surfaces
+                # with a genuine rival peak it rejects 112 -- but 124 of those 136 already
+                # failed pk>=0.45 anyway. Among frames the gate can actually affect (pk>=0.45,
+                # n=336) it rejects just 2, i.e. the ambiguity test is now nearly VACUOUS and
+                # the real protection is the pk>=0.45 floor plus the +/-25 px clamp. Kept
+                # because it still fires on the cloud-edge tie it was written for.
+                pk2 = _rival_peak(cc, loc, 12)
+                prov["pk"], prov["pk2"] = round(float(pk), 3), round(pk2, 3)
+                if pk >= 0.45 and (pk - pk2) >= 0.08:
+                    lx = (sx0 + loc[0]) - tx0
+                    ly = (sy0 + loc[1]) - ty0
+                    if abs(lx) <= 25 and abs(ly) <= 25:
+                        prov["lock"] = 1
+                        if abs(lx) > 1 or abs(ly) > 1:
+                            M3 = np.float32([[1, 0, lx], [0, 1, ly]])
+                            T = np.stack([cv2.warpAffine(T[:, :, c], M3, (2 * h, 2 * h),
+                                                         flags=cv2.INTER_LINEAR,
+                                                         borderMode=cv2.BORDER_CONSTANT,
+                                                         borderValue=1.0) for c in range(3)], axis=2)
+                            rx, ry = rx + lx, ry + ly
+                        # persist the measurement: it becomes the next tick's prior
+                        try:
+                            tmp = LOCKF + ".tmp"
+                            with open(tmp, "w") as fh:
+                                json.dump({"ts": datetime.datetime.now(datetime.timezone.utc)
+                                           .isoformat(timespec="seconds"),
+                                           "cx": round(x0 + rx, 1), "cy": round(y0 + ry, 1),
+                                           "corr": round(float(pk), 3)}, fh)
+                            os.replace(tmp, LOCKF)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            # append-only per-tick provenance (referee 2026-07-28b, finding 1): which
+            # model bundle, code version and lock state served THIS correction.
+            try:
+                pl = os.path.join(HERE, "spot_provenance.csv")
+                hdr = not os.path.exists(pl)
+                with open(pl, "a") as fh:
+                    if hdr:
+                        fh.write("ts,model_updated,tmap_sha16,code_version,apply_flag,"
+                                 "cx,cy,path,lock,pk,pk2\n")
+                    fh.write(",".join(str(v) for v in [
+                        datetime.datetime.now(datetime.timezone.utc)
+                        .isoformat(timespec="seconds"),
+                        (mm or {}).get("updated", ""), (mm or {}).get("tmap_sha256_16", ""),
+                        (mm or {}).get("code_version", ""),
+                        int(os.path.exists(os.path.join(HERE, ".spot_apply_on"))),
+                        round(x0 + rx, 1), round(y0 + ry, 1), prov["path"], prov["lock"],
+                        prov["pk"], prov["pk2"]]) + "\n")
+            except Exception:
+                pass
+            rb2 = np.sqrt((xx - rx) ** 2 + (yy - ry) ** 2)
+            ring = (rb2 >= 105) & (rb2 < 130)
+            if ring.sum() < 400:                     # near the edge: accept a partial ring
+                ring = (rb2 >= 80) & (rb2 < 130)
             foot = cv2.GaussianBlur(((1.0 - T.min(axis=2)) > 0.006).astype(np.float32), (0, 0), 8)
             chn = "bgr"
+            core = rb2 < 25
+            ay2, ax2 = np.where(ring)
+            A2 = np.column_stack([np.ones_like(ax2), ax2 - rx, ay2 - ry,
+                                  (ax2 - rx) ** 2, (ax2 - rx) * (ay2 - ry),
+                                  (ay2 - ry) ** 2]).astype(np.float64)
+            E2 = np.column_stack([np.ones(xx.size), (xx - rx).ravel(), (yy - ry).ravel(),
+                                  ((xx - rx) ** 2).ravel(), ((xx - rx) * (yy - ry)).ravel(),
+                                  ((yy - ry) ** 2).ravel()]).astype(np.float64)
             for c in range(3):
                 lin = _srgb_lin(win[:, :, c])
                 Dref = 1.0 - T[:, :, c]                          # ref-level per-pixel deficit
@@ -125,11 +305,38 @@ def _correct(img):
                     L = float(np.median(win[:, :, c][ring]))    # this bracket's local level (0-255)
                     s_L = float(np.interp(L, sc["level_knots"], sc["s"][chn[c]]))
                     s_ref = sc.get("s_ref", {}).get(chn[c]) or s_L
-                    scale = min(max(s_L / max(s_ref, 1e-3), 0.3), 4.0)
-                Tc = np.clip(1.0 - Dref * scale, 0.5, 1.05)
-                gain = 1.0 / np.clip(Tc, 0.7, 1.0)              # divide out transmittance at this exposure
+                    scale = min(max(s_L / max(s_ref, 1e-3), 0.3), 2.5)
+                # --- per-tick AMPLITUDE self-cal (gated) + local-sky quadratic for the cap.
+                #     The scurve is open-loop; on dark backgrounds the true dip runs deeper
+                #     than map*scurve. When the ring is clean enough to trust, measure this
+                #     frame's own core deficit and trim the amplitude, clamped [0.75,1.35].
+                vals = lin[ring]
+                coef2, *_ = np.linalg.lstsq(A2, vals, rcond=None)
+                res2 = vals - A2 @ coef2
+                mad2 = float(np.median(np.abs(res2 - np.median(res2)))) * 1.4826 + 1e-9
+                keep2 = np.abs(res2) < 3.0 * mad2
+                if keep2.sum() > 300:
+                    coef2, *_ = np.linalg.lstsq(A2[keep2], vals[keep2], rcond=None)
+                B2 = (E2 @ coef2).reshape(lin.shape)
+                lvl2 = max(float(np.median(B2[ring])), 1e-6)
+                amp_adj = 1.0
+                if mad2 / lvl2 < 0.05 and core.sum() > 50:
+                    model_core = max(float(np.median(Dref[core])) * scale, 1e-4)
+                    meas = 1.0 - float(np.median(lin[core])) / max(float(np.median(B2[core])), 1e-6)
+                    if 0.004 <= meas <= 0.22:
+                        amp_adj = min(max(meas / model_core, 0.75), 1.35)
+                # NO scene-referenced cap (2026-07-28): it eats the correction wherever
+                # a bright cloud sits behind the blemish (the dimmed cloud is the
+                # reference). Safety is MODEL-referenced: amplitude self-cal is clamped
+                # [0.75, 1.35]x model and gated on ring cleanliness; the scurve scale is
+                # clamped <= 2.5 (legitimate dark-bracket maximum ~1.75); and the total
+                # applied deficit is floored at Tc >= 0.85 (max brightening 18%, vs a
+                # legitimate maximum ~11%). Grain untouched at all frequencies.
+                Tc = np.clip(1.0 - Dref * scale * amp_adj, 0.85, 1.05)
+                gain = 1.0 / np.clip(Tc, 0.85, 1.0)             # divide out transmittance
                 win[:, :, c] = _lin_srgb(lin * (1.0 - foot) + (lin * gain) * foot)
             return np.clip(out, 0, 255).astype(np.uint8)
+    # (a stale model falls through to the ring-fit fallback below)
 
     # --- FALLBACK (no transmittance map): ring-fit self-calibration + characterized-depth floor ---
     foot, feath = FOOT_FRAC * W, FEATH_FRAC * W
