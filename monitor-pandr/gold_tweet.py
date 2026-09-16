@@ -13,7 +13,8 @@ exit code is 0 so the finalizer's upload path is never disturbed.
   * Image: .goldpeak_frame.jpg downscaled to TWEET_MAX_W (default 2048) px wide, JPEG q92
     (X recompresses anyway; keeps the upload well under the 5 MB image limit).
   * Upload tries the v2 media endpoint first, falls back to v1.1 media/upload; the post
-    itself is v2 POST /2/tweets. Alt text is best-effort.
+    itself is v2 POST /2/tweets. No URL in the text and no alt-text call: X bills a post
+    with a link at $0.20 (vs $0.015) and media metadata at $0.005 (2026-09-16 rate card).
   * Log: monitor.log ([goldtweet] lines) + tweet_log.csv (one row per post).
 
 Usage:  gold_tweet.py [--dry-run] [--force] [--which morning|evening] [frame.jpg] [peak.json]
@@ -68,7 +69,7 @@ def load_env():
 def caption(s):
     """Caption in Simon's template (2026-09-16):
        It's sunrise at Proofs and Reasons on the @CarnegieMellon campus. Sun XX° below horizon.
-       Red across XX% of the Eastern sky. https://proofsandreasons.io
+       Red across XX% of the Eastern sky.
     Evening swaps sunrise->sunset. red_pct is the winning sky region's red fraction; when
     it is under 1% the sentence says so rather than quoting 0%."""
     which = s.get("which", "morning")
@@ -83,8 +84,9 @@ def caption(s):
     red = float(s.get("red_pct") or 0.0)
     where = "the Eastern sky" if which == "morning" else "the sky"
     sky = f"Red across {red:.0f}% of {where}." if red >= 1.0 else f"No red in {where} today."
-    text = (f"It's {what} at Proofs and Reasons on the @CarnegieMellon campus. {sun} {sky} "
-            f"{PAGE_URL}").replace("  ", " ")
+    # No URL in the text (Simon 2026-09-16): X bills a post containing a link at $0.20 vs
+    # $0.015 without one. The site link lives in the account bio instead.
+    text = f"It's {what} at Proofs and Reasons on the @CarnegieMellon campus. {sun} {sky}".replace("  ", " ").strip()
     d = datetime.date.fromisoformat(s["date"])
     alt = (f"Automated photograph of the Carnegie Mellon campus skyline at {what}, "
            f"{d:%A %-d %B %Y}, {s.get('time', '')}. {sun} {sky}").replace("  ", " ")
@@ -182,7 +184,8 @@ def main():
         sess.auth = OAuth1(env["X_API_KEY"], env["X_API_SECRET"],
                            env["X_ACCESS_TOKEN"], env["X_ACCESS_SECRET"])
         media_id, via = upload_media(sess, img)
-        set_alt_text(sess, media_id, alt)
+        # alt text deliberately NOT set (Simon 2026-09-16): the metadata call is billed
+        # separately ($0.005); set_alt_text() is kept for if that changes.
         r = sess.post(V2_TWEET, json={"text": text, "media": {"media_ids": [media_id]}}, timeout=60)
         if r.status_code not in (200, 201):
             raise RuntimeError(f"tweet failed: HTTP {r.status_code} {r.text[:300]}")
