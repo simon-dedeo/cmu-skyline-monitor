@@ -120,9 +120,11 @@ def sun_times(dt=None):
         result["sunset"] = solar_noon + timedelta(hours=ha_rise)
 
     # Golden hour boundaries
-    # Morning golden hour: sun goes from -4° to +6°
-    # Evening golden hour: sun goes from +6° to -4°
-    ha_minus4 = _hour_angle(declination, lat_rad, -4.0)
+    # Morning golden hour: sun goes from -5° to +6° (+15 in practice, see below)
+    # Evening golden hour: sun goes from +6° to -5°
+    # Lower edge -4 -> -5 (Simon 2026-10-22): goldpeak.PICK_RANGE now reaches -4.5 and the
+    # scanner only runs inside this window, so the window must start before the band does.
+    ha_minus4 = _hour_angle(declination, lat_rad, -5.0)
     ha_plus6 = _hour_angle(declination, lat_rad, 15.0) ## shift this a little for AM
 
     if ha_minus4 is not None:

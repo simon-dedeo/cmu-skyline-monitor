@@ -10,6 +10,8 @@ X_ACCESS_SECRET=
 # access_token_secret. bearer_token / client_id / client_secret are NOT needed
 # (posting uses OAuth 1.0a user context).
 # Which golden windows to post (comma-separated): morning, evening
-TWEET_WINDOWS=morning
+TWEET_WINDOWS=morning,evening
+# Post only when the pick has at least this much red sky (%); grey days post nothing
+TWEET_RED_MIN=1.0
 # Downscale width in px for the uploaded image
 TWEET_MAX_W=2048

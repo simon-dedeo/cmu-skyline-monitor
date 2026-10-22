@@ -239,3 +239,15 @@ Started ~2026-07-13. Run ~1 week, then **reassess the golden-hour criterion** us
 richer 1-min data (the current golden-blend is a first cut; `golden_candidates/` on the
 local Desktop/MBP has the comparison material). Movie source is the 5-min archive
 (+ the saved daily `peak_<which>.jpg`).
+
+## Pink + deeper band (2026-10-22)
+
+A 40-day audit (`spot_lab/goldaudit.csv`, 80 windows, 2,873 frames) found two blind spots:
+(1) hue 290-335 (pink/mauve/salmon) was not counted at all and the saturation floor of 60
+dropped pale pink cirrus (S~50) — the 09-13 mauve sunset scored 0 and the 10-02 salmon
+sunrise was missed outright, while every strong catch carried 15-28% pink on top of its red;
+(2) morning colour peaks at -3..-4.5 deg but the pick band stopped at -3 (bin means -4: 1.5%,
+-3: 4.2%, -2: 2.1%). Changes: `gold_score = red + 0.75*pink + 0.5*amber`, red/pink saturation
+floor 45 (amber stays 60), `PICK_RANGE = (-4.5, 3)`, solar scan window now opens at -5 deg,
+`pink_pct` carried in golden.js / the index, and the X poster gates and captions on red+pink.
+`RULE_ID = "2026-10-22"`; `goldrepick.py 2026-09-13` was replayed to annotate hours.html.

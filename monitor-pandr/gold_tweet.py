@@ -5,7 +5,13 @@ Called by goldtick.sh's window-close finalizer (so the FINAL pick is posted, not
 peak that a redder frame later supersedes). Fail-soft by design: any error is logged and the
 exit code is 0 so the finalizer's upload path is never disturbed.
 
-  * Windows posted: TWEET_WINDOWS in the env file (default "morning").
+  * Windows posted: TWEET_WINDOWS in the env file (default "morning,evening").
+  * RED (or PINK, since 2026-10-22) ONLY (Simon 2026-10-11): a window is posted only when
+    the pick's red_pct + pink_pct is at least
+    TWEET_RED_MIN (env, default 1.0 %) -- the same cut at which the caption switches from
+    "No red ..." to "Red across N% ...". Grey days post nothing. Gated on red_pct, not on
+    goldpeak's gold_score coloured tier: 2026-09-17 was coloured (gold 3.13, amber) with
+    0.02% red and went out captioned "No red in the Eastern sky today".
   * Credentials: ~/monitor/.twitter_env (KEY=VALUE, chmod 600, NOT in git — see
     .twitter_env.example). OAuth 1.0a user context for the LaboratoryMinds account:
     X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET (app must have Read+Write).
@@ -18,7 +24,10 @@ exit code is 0 so the finalizer's upload path is never disturbed.
   * Log: monitor.log ([goldtweet] lines) + tweet_log.csv (one row per post).
 
 Usage:  gold_tweet.py [--dry-run] [--force] [--which morning|evening] [frame.jpg] [peak.json]
+        gold_tweet.py --delete-grey [--dry-run]
 --dry-run builds the caption and image and checks credentials but sends nothing.
+--delete-grey deletes every post in tweet_log.csv whose red_pct is under TWEET_RED_MIN
+(moved to tweet_deleted.csv; the .tweeted markers stay so nothing is re-posted).
 """
 import os, sys, json, csv, datetime, cv2
 
@@ -82,8 +91,11 @@ def caption(s):
     else:
         sun = f"Sun {abs(el):.1f}° {'below' if el < 0 else 'above'} horizon."
     red = float(s.get("red_pct") or 0.0)
+    pink = float(s.get("pink_pct") or 0.0)      # counted since 2026-10-22 (goldpeak)
+    colour = red + pink
     where = "the Eastern sky" if which == "morning" else "the sky"
-    sky = f"Red across {red:.0f}% of {where}." if red >= 1.0 else f"No red in {where} today."
+    word = "Red" if red >= pink else "Pink"
+    sky = f"{word} across {colour:.0f}% of {where}." if colour >= 1.0 else f"No red in {where} today."
     # No URL in the text (Simon 2026-09-16): X bills a post containing a link at $0.20 vs
     # $0.015 without one. The site link lives in the account bio instead.
     text = f"It's {what} at Proofs and Reasons on the @CarnegieMellon campus. {sun} {sky}".replace("  ", " ").strip()
@@ -133,6 +145,53 @@ def set_alt_text(sess, media_id, alt):
         log(f"alt text error {e!r}; continuing")
 
 
+def delete_grey(env, red_min, dry):
+    """Delete already-posted grey windows (red_pct < red_min) listed in tweet_log.csv."""
+    try:
+        rows = list(csv.DictReader(open(TWEET_LOG)))
+    except FileNotFoundError:
+        log("no tweet_log.csv; nothing to delete"); return 0
+    grey = [r for r in rows if r.get("tweet_id") and float(r.get("red_pct") or 0.0) < red_min]
+    log(f"delete-grey: {len(grey)} of {len(rows)} posts under {red_min}% red"
+        + (" (DRY RUN)" if dry else ""))
+    if dry or not grey:
+        for r in grey:
+            print(r["date"], r["which"], r["red_pct"], r["tweet_id"])
+        return 0
+    import requests
+    from requests_oauthlib import OAuth1
+    sess = requests.Session()
+    sess.auth = OAuth1(env["X_API_KEY"], env["X_API_SECRET"],
+                       env["X_ACCESS_TOKEN"], env["X_ACCESS_SECRET"])
+    gone = set()
+    for r in grey:
+        resp = sess.delete(f"{V2_TWEET}/{r['tweet_id']}", timeout=30)
+        ok = resp.status_code == 200 and resp.json().get("data", {}).get("deleted")
+        # 404 = already gone, which is the outcome we want
+        if ok or resp.status_code == 404:
+            gone.add(r["tweet_id"])
+            log(f"deleted {r['date']} {r['which']} tweet {r['tweet_id']} (red {r['red_pct']}%)")
+        else:
+            log(f"delete FAILED {r['tweet_id']}: HTTP {resp.status_code} {resp.text[:200]}")
+    if gone:
+        cols = list(rows[0].keys())
+        dpath = os.path.join(HERE, "tweet_deleted.csv")
+        new = not os.path.exists(dpath)
+        with open(dpath, "a", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols + ["deleted_utc"])
+            if new:
+                w.writeheader()
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+            for r in rows:
+                if r["tweet_id"] in gone:
+                    w.writerow({**r, "deleted_utc": now})
+        with open(TWEET_LOG, "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols)
+            w.writeheader()
+            w.writerows(r for r in rows if r["tweet_id"] not in gone)
+    return 0
+
+
 def main():
     args = sys.argv[1:]
     dry = "--dry-run" in args
@@ -146,8 +205,11 @@ def main():
     peak = pos[1] if len(pos) > 1 else os.path.join(HERE, ".golden_peak.json")
 
     env = load_env()
-    windows = {w.strip() for w in env.get("TWEET_WINDOWS", "morning").split(",") if w.strip()}
+    windows = {w.strip() for w in env.get("TWEET_WINDOWS", "morning,evening").split(",") if w.strip()}
     max_w = int(env.get("TWEET_MAX_W", "2048"))
+    red_min = float(env.get("TWEET_RED_MIN", "1.0"))
+    if "--delete-grey" in args:
+        return delete_grey(env, red_min, dry)
 
     try:
         s = json.load(open(peak))
@@ -156,6 +218,11 @@ def main():
     which = which_arg or s.get("which")
     if which not in windows:
         log(f"window {which!r} not in TWEET_WINDOWS={sorted(windows)}; skipping"); return 0
+    # red + pink (Simon 2026-10-22): pink-only skies (mauve sunsets, salmon cirrus) are real
+    # events that the red-only gate silently dropped; goldpeak now reports pink_pct.
+    red = float(s.get("red_pct") or 0.0) + float(s.get("pink_pct") or 0.0)
+    if red < red_min and not force:
+        log(f"{which} {s.get('date')} red+pink {red:.2f}% < {red_min}% (grey); not posting"); return 0
     if not os.path.isfile(frame) or os.path.getsize(frame) == 0:
         log(f"peak frame {frame} missing; skipping"); return 0
 
@@ -199,7 +266,7 @@ def main():
                             "red_pct", "media_via", "tweet_id"])
             w.writerow([datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
                         s.get("date"), which, s.get("time"), s.get("sun_elev"),
-                        s.get("gold_score"), s.get("red_pct"), via, tid])
+                        s.get("gold_score"), round(red, 2), via, tid])   # red+pink since 2026-10-22
         log(f"posted {which} {s.get('date')} {s.get('time')} -> tweet {tid} (media via {via})")
     except Exception as e:
         log(f"post FAILED: {e!r}")

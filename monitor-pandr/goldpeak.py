@@ -33,7 +33,12 @@ BRIGHT_FLOOR = 50       # full-frame mean; reject near-black twilight frames
 #     put the red-sky optimum at elev -3..+3 for BOTH windows, and showed the old -1.0 snap
 #     could not tell a spectacular red sunrise from a flat grey one at the same elevation
 #     (7 of 30 mornings and 3 of 30 evenings had any red at all).
-PICK_RANGE = (-3.0, 3.0)
+# Floor lowered -3.0 -> -4.5 (Simon 2026-10-22). A 40-day audit (spot_lab/goldaudit.csv,
+# 80 windows) binned sky colour by elevation: mornings -4: 1.5%, -3: 4.2%, -2: 2.1%, -1: 0.6%,
+# i.e. the -4 bin is MORE coloured than the -2 bin, and the band floor at -3 sat on the peak.
+# 2026-10-02 (pink cirrus at -3.6) was missed outright and 2026-09-16's best frame (65.7% at
+# -3.3) was ineligible. solar.py's scan window now starts at -5 so these frames are scanned.
+PICK_RANGE = (-4.5, 3.0)
 # GREY-DAY TARGET (Simon 2026-09-16). On the ~70% of mornings with no colour at all the pick
 # used to fall to the horizon (elev 0), which gave a flat, washed-out blue-grey frame. Reviewing
 # 29 mornings since 08-19 (19 of them grey and all pinned at 0.0): at elev ~-2 the same
@@ -43,7 +48,7 @@ PICK_RANGE = (-3.0, 3.0)
 # too. BRIGHT_FLOOR still applies, so on a very dark overcast day the pick slides from -2
 # toward the horizon until the campus is properly lit (5/19 grey mornings, 4/26 evenings).
 GREY_TARGET = {"morning": -2.0, "evening": -2.0}
-RULE_ID = "2026-09-16"  # bump when the pick rule changes; stored per index entry so
+RULE_ID = "2026-10-22"  # bump when the pick rule changes; stored per index entry so
                         # hours.html can say which rule chose each frame
 TARGET_ELEV = dict(GREY_TARGET)                   # exact-position minute: goldtick.sh's
                                                   # --target-time centres the HDR bracket on
@@ -203,8 +208,11 @@ def parse(v):
     return dt if dt.tzinfo else dt.replace(tzinfo=datetime.timezone.utc)
 
 
+PINK_WEIGHT = 0.75      # pink counts 3/4 of red in gold_score (amber counts 1/2)
+
+
 def _region_colour(img, region):
-    """(red_pct, amber_pct, gold_score) for one (y0, y1, x0, x1) fractional sky region."""
+    """(red_pct, amber_pct, pink_pct, gold_score) for one (y0, y1, x0, x1) fractional sky region."""
     H, W = img.shape[:2]
     y0, y1, x0, x1 = region
     roi = img[int(y0 * H):int(y1 * H), int(x0 * W):int(x1 * W)]
@@ -213,11 +221,17 @@ def _region_colour(img, region):
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
     hh = hsv[:, :, 0].astype(np.float32) * 2.0            # cv2 hue 0-179 -> degrees
     ss, vv = hsv[:, :, 1], hsv[:, :, 2]
-    ok = (ss >= 60) & (vv >= 40) & (vv <= 252)
+    # PINK (Simon 2026-10-22): the audit found every strong event carried 15-28% pink/mauve
+    # pixels (hue 290-335) on top of its red, and the two misses (09-13 evening mauve
+    # sunset, 10-02 morning salmon cirrus) were pink WITHOUT red -- scored 0 by the old
+    # red+amber rule. Pink and red share a saturation floor of 45 (pink cirrus sits at
+    # S~50, under the old 60); amber keeps 60 because low-sat amber is ordinary haze.
+    ok = (ss >= 45) & (vv >= 40) & (vv <= 252)
     red = ok & ((hh <= 25) | (hh >= 335))
-    amber = ok & (hh > 25) & (hh <= 50)
-    rp, ap = float(red.mean()) * 100.0, float(amber.mean()) * 100.0
-    return rp, ap, rp + 0.5 * ap
+    pink = ok & (hh >= 290) & (hh < 335)
+    amber = ok & (ss >= 60) & (hh > 25) & (hh <= 50)
+    rp, pp, ap = (float(m.mean()) * 100.0 for m in (red, pink, amber))
+    return rp, ap, pp, rp + PINK_WEIGHT * pp + 0.5 * ap
 
 
 def sun_sky_stats(img, which):
@@ -225,8 +239,9 @@ def sun_sky_stats(img, which):
     reporting the region with the highest gold_score (see SUN_SKY). Fractions, never a mean:
     the glow covers only part of the sky, so an average reads blue even during a vivid
     sunrise. Returns (red_pct, amber_pct, gold_score) with red weighted double against
-    amber -- amber alone is also ordinary daytime haze."""
-    return max((_region_colour(img, r) for r in SUN_SKY[which]), key=lambda t: t[2])
+    amber -- amber alone is also ordinary daytime haze; pink (hue 290-335) at PINK_WEIGHT.
+    Returns (red_pct, amber_pct, pink_pct, gold_score)."""
+    return max((_region_colour(img, r) for r in SUN_SKY[which]), key=lambda t: t[3])
 
 
 def stats(path, which=None):
@@ -252,8 +267,8 @@ def stats(path, which=None):
                sky_hue=sky_hue_top(img), img_hue=img_hue_full(img),
                campus_hue=campus_hue_full(img))
     if which in SUN_SKY:
-        rp, ap, gs = sun_sky_stats(img, which)
-        out.update(red_pct=rp, amber_pct=ap, gold_score=gs)
+        rp, ap, pp, gs = sun_sky_stats(img, which)
+        out.update(red_pct=rp, amber_pct=ap, pink_pct=pp, gold_score=gs)
     return out
 
 
@@ -374,12 +389,12 @@ def main():
         j = lambda v: "null" if v is None else v
         # NB: goldscan.sh parses this line POSITIONALLY (fields 2 & 10) — only
         # ever APPEND new fields.
-        print("UPLOAD|{}|{}|{}|{}|{}|{}|{}|{}|{:.0f}|{}|{}|{}|{}|{}|{:.2f}|{:.2f}|{:.2f}".format(
+        print("UPLOAD|{}|{}|{}|{}|{}|{}|{}|{}|{:.0f}|{}|{}|{}|{}|{}|{:.2f}|{:.2f}|{:.2f}|{:.2f}".format(
             which, tlabel, dlabel, j(sun_elev), j(sky_hue), sname,
             j(exp_ms), j(gain), st_img["blend"], ts, j(img_hue), iname,
             j(campus_hue), cname,
             st_img.get("gold_score", 0.0), st_img.get("red_pct", 0.0),
-            st_img.get("amber_pct", 0.0)))
+            st_img.get("amber_pct", 0.0), st_img.get("pink_pct", 0.0)))
     else:
         print("HOLD")
 

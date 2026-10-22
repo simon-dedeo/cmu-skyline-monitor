@@ -25,7 +25,7 @@ if s.get("which"):
     g = {k: s.get(k) for k in ("which", "time", "date", "ts", "sun_elev",
                                "sky_hue", "sky_hue_name", "img_hue", "img_hue_name",
                                "campus_hue", "campus_hue_name", "exp_ms", "gain",
-                               "gold_score", "red_pct", "amber_pct")}
+                               "gold_score", "red_pct", "amber_pct", "pink_pct")}
     g["blend"] = round(s.get("blend", 0))
     open("golden.js", "w").write("window.GOLDEN=" + json.dumps(g) + ";")
     import sys; sys.path.insert(0, "."); from goldpeak import RULE_ID

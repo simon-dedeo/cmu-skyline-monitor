@@ -93,6 +93,7 @@ def main():
             if abs((dt - t0).total_seconds()) <= 120:
                 ent["gold_score"] = round(st.get("gold_score", 0.0), 2)
                 ent["red_pct"] = round(st.get("red_pct", 0.0), 2)
+                ent["pink_pct"] = round(st.get("pink_pct", 0.0), 2)
                 ent["tier"] = sc[1] if sc else "vetoed"
         ent.setdefault("rule", "pre-" + gp.RULE_ID if ent["date"] < gp.RULE_ID else gp.RULE_ID)
         if ent.get("rule") == gp.RULE_ID:
@@ -106,7 +107,8 @@ def main():
         same = t0 is not None and abs((dt - t0).total_seconds()) <= 120
         rp = {"time": loc.strftime("%-I:%M %p"), "sun_elev": round(el, 1),
               "gold_score": round(st.get("gold_score", 0.0), 2),
-              "red_pct": round(st.get("red_pct", 0.0), 2), "tier": sc[1],
+              "red_pct": round(st.get("red_pct", 0.0), 2),
+              "pink_pct": round(st.get("pink_pct", 0.0), 2), "tier": sc[1],
               "changed": not same, "rule": gp.RULE_ID}
         if not same:
             name = f"repick_{ent['date']}_{which}.jpg"

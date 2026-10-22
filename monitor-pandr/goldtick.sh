@@ -50,7 +50,7 @@ if s.get("which"):
     g = {k: s.get(k) for k in ("which", "time", "date", "ts", "sun_elev",
                                "sky_hue", "sky_hue_name", "img_hue", "img_hue_name",
                                "campus_hue", "campus_hue_name", "exp_ms", "gain",
-                               "gold_score", "red_pct", "amber_pct")}
+                               "gold_score", "red_pct", "amber_pct", "pink_pct")}
     g["blend"] = round(s.get("blend", 0))
     open("golden.js", "w").write("window.GOLDEN=" + json.dumps(g) + ";")
     import sys; sys.path.insert(0, "."); from goldpeak import RULE_ID
@@ -96,7 +96,7 @@ PYT
     fi
     rm -rf "$TMP"
     # Post the FINAL pick to X/@LaboratoryMinds (Simon 2026-09-16). gold_tweet.py decides
-    # which windows to post (TWEET_WINDOWS in .twitter_env, default morning), is idempotent
+    # which windows to post (TWEET_WINDOWS, default morning,evening; red skies only), is idempotent
     # per window, and is fail-soft -- it never returns non-zero, so the cleanup below runs.
     "$PY" gold_tweet.py >>"$LOG" 2>&1 || log "gold_tweet.py errored"
   fi
