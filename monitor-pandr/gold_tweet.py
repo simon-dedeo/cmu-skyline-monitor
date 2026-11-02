@@ -9,7 +9,9 @@ exit code is 0 so the finalizer's upload path is never disturbed.
   * RED (or PINK, since 2026-10-22) ONLY (Simon 2026-10-11): a window is posted only when
     the pick's red_pct + pink_pct is at least
     TWEET_RED_MIN (env, default 1.0 %) -- the same cut at which the caption switches from
-    "No red ..." to "Red across N% ...". Grey days post nothing. Gated on red_pct, not on
+    "No red ..." to "Red across N% ...". TWEET_RED_MIN_MORNING / TWEET_RED_MIN_EVENING
+    override it per window (Simon 2026-11-02: sunrise gate raised to 5 %, sunset stays
+    at 1 %). Grey days post nothing. Gated on red_pct, not on
     goldpeak's gold_score coloured tier: 2026-09-17 was coloured (gold 3.13, amber) with
     0.02% red and went out captioned "No red in the Eastern sky today".
   * Credentials: ~/monitor/.twitter_env (KEY=VALUE, chmod 600, NOT in git — see
@@ -221,6 +223,8 @@ def main():
     # red + pink (Simon 2026-10-22): pink-only skies (mauve sunsets, salmon cirrus) are real
     # events that the red-only gate silently dropped; goldpeak now reports pink_pct.
     red = float(s.get("red_pct") or 0.0) + float(s.get("pink_pct") or 0.0)
+    # per-window gate (Simon 2026-11-02): sunrises must be redder than sunsets to post.
+    red_min = float(env.get(f"TWEET_RED_MIN_{which.upper()}", red_min))
     if red < red_min and not force:
         log(f"{which} {s.get('date')} red+pink {red:.2f}% < {red_min}% (grey); not posting"); return 0
     if not os.path.isfile(frame) or os.path.getsize(frame) == 0:

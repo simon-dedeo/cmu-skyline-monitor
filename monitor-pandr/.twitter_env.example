@@ -13,5 +13,8 @@ X_ACCESS_SECRET=
 TWEET_WINDOWS=morning,evening
 # Post only when the pick has at least this much red sky (%); grey days post nothing
 TWEET_RED_MIN=1.0
+# Per-window overrides of TWEET_RED_MIN (sunrise gate raised to 5% on 2026-11-02)
+TWEET_RED_MIN_MORNING=5.0
+TWEET_RED_MIN_EVENING=1.0
 # Downscale width in px for the uploaded image
 TWEET_MAX_W=2048
