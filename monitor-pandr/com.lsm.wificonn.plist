@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lsm.wificonn</string>
+
+    <!-- Connected-AP RSSI sampler (2026-11-04): CoreWLAN read at 1 Hz, no scan, daemon,
+         daily files in wifi_conn/, gzipped on rollover. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/proofsandreasons/monitor/venv/bin/python3</string>
+        <string>/Users/proofsandreasons/monitor/wifi_conn.py</string>
+    </array>
+
+    <!-- Long-running 1 Hz loop: KeepAlive restarts it if it dies; ThrottleInterval
+         stops a crash loop from spinning (unlike the one-shot tick agents). -->
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/proofsandreasons/monitor</string>
+    <key>StandardOutPath</key>
+    <string>/Users/proofsandreasons/monitor/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/proofsandreasons/monitor/launchd.err.log</string>
+</dict>
+</plist>
