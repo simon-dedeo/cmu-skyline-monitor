@@ -52,7 +52,7 @@ pipeline and conjugate MAP corrector reduce clean-sky linear dip from
 \num{2450}+ daylight triples; live at
 \href{https://proofsandreasons.io}{proofsandreasons.io}), motivating physics-first
 handling of soiled robotic cameras. Code and data are public at
-\href{https://github.com/simon-dedeo/cmu-skyline-monitor}{github.com/simon-dedeo/cmu-skyline-monitor}.
+\href{https://github.com/simon-dedeo/pittsburgh-in-a-grain-of-sand}{github.com/simon-dedeo/pittsburgh-in-a-grain-of-sand}.
 \end{abstract}
 
 \begin{center}
@@ -756,14 +756,22 @@ sit at the intersection:
 \section{Code, reproducibility, and limitations}
 \label{sec:limitations}
 
-Deployed production scripts live in \code{production/akdeniz/} (\code{spotnight.py},
-\code{spot\_m2.stan}, \code{spotnight\_cron.sh}) and \code{production/pandr/}
-(\code{flatfield.py}, \code{spot\_ab.py}, \code{spotlab.py}, \code{nightly.sh},
-\code{spot\_model.json}); offline July analysis scripts remain in
-\code{spot\_paper/code/}; and the synthetic end-to-end test is
+{\sloppy
+All code, paper sources, and reproduction datasets are public in a dedicated
+repository at
+\url{https://github.com/simon-dedeo/pittsburgh-in-a-grain-of-sand}
+(deployed alongside the broader skyline-monitor stack at
+\url{https://github.com/simon-dedeo/cmu-skyline-monitor}).
+Within the analysis repository, deployed production scripts live in
+\code{production/akdeniz/} (\code{spotnight.py}, \code{spot\_m2.stan},
+\code{spotnight\_cron.sh}) and \code{production/pandr/} (\code{flatfield.py},
+\code{spot\_ab.py}, \code{spotlab.py}, \code{hdrfuse.py}, \code{nightly.sh},
+\code{spot\_model.json}); offline July analysis scripts live in
+\code{offline\_july/}; all datasets needed to reproduce the figures, tables,
+CRF calibration, and Stan~M2 fits live in \code{data/} with a one-command
+driver (\code{reproduce\_figures.py}); and the synthetic end-to-end test is
 \code{tests/test\_\allowbreak synthetic\_\allowbreak end\_\allowbreak to\_\allowbreak end.py}.
-All materials are public at
-\url{https://github.com/simon-dedeo/cmu-skyline-monitor}.
+\par}
 
 \paragraph{Remaining limitations.}
 \begin{itemize}

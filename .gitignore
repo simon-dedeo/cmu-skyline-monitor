@@ -30,3 +30,5 @@ client_id
 client_secret
 # rendered timelapses are too large for GitHub (661 MB); keep them out of the repo
 *.mp4
+# standalone spot-remover analysis repository (has its own git history & remote)
+pittsburgh-in-a-grain-of-sand/
