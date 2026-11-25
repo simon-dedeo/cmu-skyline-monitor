@@ -22,11 +22,11 @@
   \large\mdseries Lightning colorimetry from plasma physics to webcam Bayer}
 \author{CMU Skyline Monitor --- \code{pandr} ---
   \href{https://proofsandreasons.io}{\code{proofsandreasons.io}}\thanks{Operated by
-Simon DeDeo (Carnegie Mellon University). Analysis, revision, and code developed with AI
+Simon DeDeo (Carnegie Mellon University). Analysis and code developed with AI
 assistance; the human operator is responsible for all claims, citations, and errors.
 Data, analysis code, and LaTeX source:
 \href{https://github.com/simon-dedeo/lavender-flash}{\code{github.com/simon-dedeo/lavender-flash}}.}}
-\date{2026-11-24 (v4)}
+\date{2026-11-24}
 
 \begin{document}
 \maketitle
@@ -39,28 +39,26 @@ top-band mean $(R,G,B)=(172,170,223)$ against neighboring sodium-amber baselines
 of $(22,19,7)$ before and $(9,8,4)$ after. We treat this frame as a
 radiometric and colorimetric closure test: can the measured color be predicted
 from the physics of lightning emission propagated through cloud, air, and the
-camera's imaging pipeline? First, we validate the camera model against 769
-daytime sky frames from the same fixed-5600~K white-balance archive. That test
-exposes a critical pitfall of earlier modeling: comparing linearized sRGB pixels
-against un-matrixed Bayer sensitivities omits the camera's $3\times 3$
-color-correction matrix (CCM), failing even on ordinary clear blue afternoon
-skies ($B/G=2.19$ measured vs.\ $\le 1.81$ un-matrixed) and spuriously forcing
-a large violet \Ntp{} requirement. Restoring a colorimetrically consistent
-pipeline (Bayer$+$CCM or CIE-sRGB) overturns the claim that \Ntp{} bands are
-required at 12--21\%: an optically thin Kramers free--free/free--bound continuum
-plus N\,\textsc{ii} and hydrogen Balmer lines reproduces the flash with only
-$0$--$14\%$ \Ntp{} energy---e.g.\ $(w_c,w_a,w_m)=(0.57,0.38,0.05)$ in CIE-sRGB
-at 5600~K---consistent with high-speed return-stroke spectroscopy. Two sharper
-physical constraints survive: (i)~an optically thin, cooling continuum (and/or
-longer path reddening) is strongly favored over an optically thick 30\,000~K
-Planck continuum, which renders too blue ($B/G=2.10$); and (ii)~strong
-H$\alpha$ (656.3~nm) emission from dissociated water vapor is strictly required
-to push $R/G>1$ under every camera model. Direct 4K frame diagnostics using the
-camera's empirically measured per-channel response function remove
-brightness-dependent $R/G$ drift, isolate blue-channel highlight roll-off above
-DN~220, and verify rolling-shutter uniformity. We close by connecting the
-nitrogen emission to lightning's abiotic fixation pathways and examining the
-metameric color theory of a pale violet no eye witnessed.
+camera's imaging pipeline? Direct 4K frame analysis using the camera's
+empirically calibrated per-channel response function removes
+brightness-dependent $R/G$ drift, isolates blue-channel highlight roll-off
+above DN~220, and confirms rolling-shutter uniformity across the full frame.
+Validating the color pipeline against 769 daytime sky frames from the same
+locked-5600~K archive shows that a color-corrected sRGB pipeline (Bayer plus a
+$3\times 3$ color-correction matrix, or CIE-sRGB) reproduces both clear blue
+and overcast skies, whereas un-matrixed Bayer sensitivities do not. Passing a
+three-component spectral model---continuum, N\,\textsc{ii} and hydrogen Balmer
+lines, and \Ntp{} first-negative bands---through this validated pipeline yields
+three physical constraints: (i)~an optically thin, cooling Kramers continuum
+(and/or longer atmospheric path reddening) is strongly favored over an
+optically thick 30\,000~K Planck continuum, which renders too blue
+($B/G=2.10$); (ii)~strong H$\alpha$ (656.3~nm) emission from dissociated water
+vapor is strictly required to lift $R/G>1$; and (iii)~molecular \Ntp{}
+emission is bounded to $0$--$14\%$ of visible energy---e.g.\
+$(w_c,w_a,w_m)=(0.57,0.38,0.05)$ in CIE-sRGB at 5600~K---consistent with
+high-speed return-stroke spectroscopy. We close by connecting the nitrogen
+emission to lightning's abiotic fixation pathways and examining the metameric
+color theory of a pale violet no eye witnessed.
 \end{abstract}
 
 \begin{figure}[ht]
@@ -100,19 +98,17 @@ scene to twilight levels (Fig.~\ref{fig:frames}). Two later samples (00:33 and
 00:39~EDT; sky swatches \code{\#11151d} and \code{\#111722}) show weak blue
 excursions consistent with more distant flashes.
 
-Direct inspection of the archived 4K ($3840\times 2160$) reference triplet
-refines the measurement in four ways over a single summary swatch. First, the
-logged swatch \code{\#b9b5ed} is the OKLab perceptual average over the
-monitor's central sky box (rows 5--35\%, middle third), which sits over the
-brightest part of the illuminated cloud deck; the full-width upper quarter
-(top 25\%) gives raw mean $(R,G,B)=(172.0,169.8,223.1)$ (\code{\#acaadf})
-against $(21.9,18.6,7.0)$ at 00:06~EDT and $(9.3,8.4,4.0)$ at 00:17~EDT.
-(Because the night exposure schedule interpolates gain slowly with solar
-depression, \code{ref\_gain} stepped from 86 to 87 between 00:06 and 00:11 and
-remained 87 at 00:17.) Second, linearizing \emph{pixel-by-pixel} rather than
-linearizing the band mean (avoiding Jensen bias) with the standard sRGB
-transfer function \citep{iec1999} and subtracting the mean of the bracketing
-baselines yields the flash-only linear sky color
+We extract the flash radiometry directly from the archived 4K
+($3840\times 2160$) reference triplet. While the logged swatch \code{\#b9b5ed}
+is the OKLab perceptual average over the monitor's central sky box (rows
+5--35\%, middle third) covering the brightest cloud region, the full-width
+upper quarter (top 25\%) gives raw mean $(R,G,B)=(172.0,169.8,223.1)$
+(\code{\#acaadf}) against $(21.9,18.6,7.0)$ at 00:06~EDT and $(9.3,8.4,4.0)$
+at 00:17~EDT. (Because the night exposure schedule interpolates gain slowly
+with solar depression, \code{ref\_gain} stepped from 86 to 87 between 00:06
+and 00:11 and remained 87 at 00:17.) Linearizing pixel-by-pixel with the
+standard sRGB transfer function \citep{iec1999} and subtracting the mean of
+the bracketing baselines yields the flash-only linear sky color
 \begin{equation}
   (r,g,b)_{\rm flash} = (0.414,\,0.403,\,0.747), \qquad
   R/G = 1.028,\quad B/G = 1.854 .
@@ -123,29 +119,29 @@ baseline in linear radiance, subtracting only the `before' frame
 ($R/G=1.026$, $B/G=1.863$) or only the gain-matched `after' frame
 ($R/G=1.030$, $B/G=1.845$) shifts the ratios by less than $1\%$.
 
-Third, the 4K frame allows two critical sensor diagnostics that earlier
-summaries missed (Fig.~\ref{fig:radiometry}). Binning the top-25\% sky pixels
-by flash $B$ digital number reveals two systematic instrumental effects:
-(a)~under sRGB linearization, $R/G$ drifts upward by $+6.3\%$ from $0.982$ at
-$B_{\rm DN}\approx 182$ to $1.044$ at $B_{\rm DN}\approx 245$. Applying the
-empirical per-channel Camera Response Function (CRF) independently calibrated
-for this exact Elgato Facecam~4K from daytime exposure brackets in the
-monitor's flat-field pipeline ($L_c(x)\propto [(x+a_c)/(1+a_c)]^{\gamma_c}-c_{0,c}$
-with $(a,\gamma)_R=(0.36,3.2)$, $(0.45,3.8)_G$, $(0.55,3.8)_B$, anchored
-neutral at DN~180) flattens that drift completely to $R/G = 1.026$--$1.037$
-across the entire unclipped sky (and produces the same flattening on daytime
-overcast skies in \code{science.csv}), yielding top-25\% CRF ratios
-$R/G=1.030$, $B/G=1.905$. (b)~Above $B_{\rm DN}\approx 220$, $B/G$ rolls off
-monotonically under \emph{both} sRGB ($1.919\to 1.754$) and the empirical CRF
-($1.975\to 1.794$), driven by ISP highlight-shoulder compression and hard
-clipping ($1.04\%$ of top-25\% pixels reach $B\ge 254$, rising to $11.6\%$ in
-the top-5\% central sky). Restricting to the unclipped, below-shoulder sky
-($170\le B_{\rm DN}<215$) gives $R/G=0.997$, $B/G=1.914$ (sRGB) or
-$R/G=1.027$, $B/G=1.969$ (CRF). Thus the true flash-only ratios lie tightly in
-$R/G\approx 1.00$--$1.03$ and $B/G\approx 1.85$--$1.97$.
+Binning the top-25\% sky pixels by flash blue digital number ($B_{\rm DN}$)
+characterizes the sensor's nonlinear response directly inside the flash frame
+(Fig.~\ref{fig:radiometry}). First, under standard sRGB linearization, $R/G$
+drifts upward by $+6.3\%$ from $0.982$ at $B_{\rm DN}\approx 182$ to $1.044$
+at $B_{\rm DN}\approx 245$. Applying the empirical per-channel Camera Response
+Function (CRF) independently calibrated for this Elgato Facecam~4K from
+daytime exposure brackets in the monitor's flat-field pipeline
+($L_c(x)\propto [(x+a_c)/(1+a_c)]^{\gamma_c}-c_{0,c}$ with
+$(a,\gamma)_R=(0.36,3.2)$, $(0.45,3.8)_G$, $(0.55,3.8)_B$, anchored neutral at
+DN~180) flattens that drift to $R/G = 1.026$--$1.037$ across the entire
+unclipped sky (and produces the same flattening on daytime overcast skies in
+\code{science.csv}), yielding top-25\% CRF ratios $R/G=1.030$, $B/G=1.905$.
+Second, above $B_{\rm DN}\approx 220$, $B/G$ rolls off monotonically under
+both sRGB ($1.919\to 1.754$) and the empirical CRF ($1.975\to 1.794$), driven
+by ISP highlight-shoulder compression and partial blue clipping ($1.04\%$ of
+top-25\% pixels reach $B\ge 254$, rising to $11.6\%$ in the top-5\% central
+sky). Restricting to the unclipped, below-shoulder sky ($170\le B_{\rm DN}<215$)
+gives $R/G=0.997$, $B/G=1.914$ (sRGB) or $R/G=1.027$, $B/G=1.969$ (CRF). Thus
+the true flash-only ratios lie tightly in $R/G\approx 1.00$--$1.03$ and
+$B/G\approx 1.85$--$1.97$.
 
-Fourth, the Elgato Facecam~4K uses a CMOS rolling shutter (readout time
-$\sim$17--33~ms at 4K), so a millisecond-scale flash could in principle
+Finally, because the Elgato Facecam~4K uses a CMOS rolling shutter (readout
+time $\sim$17--33~ms at 4K), a millisecond-scale flash could in principle
 illuminate only a horizontal band of rows. Computing the full-frame vertical
 profile of $(I_{\rm flash}-I_{\rm before})$ across all 2160~rows shows smooth,
 continuous illumination from the top cloud deck through the building
@@ -231,8 +227,9 @@ The strongest neutral emissions (O\,\textsc{i} 777.4~nm and N\,\textsc{i}
 O\,\textsc{i} 615.8~nm inside the passband. We represent the atomic component
 with a 10-line core template ($\sigma=2.5$--3~nm Gaussian profiles standing in
 for Stark-broadened multiplets, relative energies ordered per
-\cite{orville1968,orvillehenderson1984}, H$\alpha$ strongest) and test sensitivity against both an expanded 22-line literature template
-(adding H$\gamma$, H$\delta$, and secondary blue N\,\textsc{ii}/O\,\textsc{ii}
+\cite{orville1968,orvillehenderson1984}, H$\alpha$ strongest) and test
+sensitivity against both an expanded 22-line literature template (adding
+H$\gamma$, H$\delta$, and secondary blue N\,\textsc{ii}/O\,\textsc{ii}
 multiplets) and an H$\alpha$-ablated template with 656.3~nm removed.
 
 \subsection{The molecular bands}
@@ -246,16 +243,14 @@ slitless and high-speed triggered-lightning spectrographs consistently find
 \Ntp{} bands weak or absent \citep{salanave1962,walker2017,walker2019}---but
 in cooler peripheral regions: the corona sheath, stepped leaders, streamers,
 and intracloud discharges \citep{wallace1964,orville1968,rakovuman2003}.
-Whether a broadband camera pixel \emph{requires} a large \Ntp{} fraction turns
-out to hinge critically on modeling the camera's color pipeline accurately.
 
-\subsection{Archive validation, the mixture model, and the closure test}
+\subsection{Archive camera validation and the colorimetric closure test}
 \label{sec:fit}
-An essential check before inverting lightning color is whether the assumed
-camera model reproduces \emph{known-spectrum} skies recorded by the exact same
-instrument under the exact same locked 5600~K white balance. Extracting
-high-sun reference frames from \code{science.csv} gives two clean daytime
-calibration anchors (Table~\ref{tab:validation}):
+Before inverting the flash color, we validate our camera model against
+known-spectrum skies recorded by the exact same instrument under the exact
+same locked 5600~K white balance. Extracting high-sun reference frames from
+\code{science.csv} provides two daytime calibration anchors
+(Table~\ref{tab:validation}):
 \begin{itemize}\itemsep2pt
   \item \emph{Overcast sky} ($n=481$, solar elevation $>45^\circ$, cloud cover
   $\ge 95\%$): median DN $(163,179,207)$, sRGB-linearized $R/G=0.845$
@@ -265,20 +260,17 @@ calibration anchors (Table~\ref{tab:validation}):
   (IQR $0.44$--$0.61$), $B/G=2.189$ (IQR $1.79$--$2.30$).
 \end{itemize}
 
-This archive test exposes a major error in comparing linearized sRGB pixels
-directly to raw, un-matrixed Bayer channel integrals (as done in earlier
-versions of this analysis). Consumer Bayer filters overlap strongly across
-wavelength; raw white-balanced Bayer RGB is therefore severely desaturated.
-Every real camera ISP applies a $3\times 3$ color-correction matrix (CCM) with
-negative off-diagonal terms to transform raw sensor RGB into standard linear
-sRGB (approximating the CIE~1931 color-matching functions adapted from 5600~K
-to D65). As Table~\ref{tab:validation} and Fig.~\ref{fig:spectrum}b show,
-un-matrixed Gaussian Bayer sensitivities fail the daytime archive test
-catastrophically: even an 85\% Rayleigh clear blue sky reaches only
-$B/G=1.67$ (and 100\% Rayleigh only $1.81$), unable to reach the measured
-clear-sky median of $2.19$. Restoring either a least-squares
-white-point-preserving $3\times 3$ CCM on the exact same Bayer Gaussians
-(Bayer$+$CCM) or the sensor-independent CIE-sRGB pipeline immediately
+Consumer Bayer filters overlap broadly across wavelength, so raw
+white-balanced Bayer integrals are much less saturated than the camera's sRGB
+output; every digital camera ISP applies a $3\times 3$ color-correction matrix
+(CCM) with negative off-diagonal terms to map raw sensor RGB into linear sRGB
+(approximating the CIE~1931 color-matching functions adapted from 5600~K to
+D65). Table~\ref{tab:validation} and Fig.~\ref{fig:spectrum}b confirm this
+quantitatively: un-matrixed Gaussian Bayer curves reach only $B/G=1.67$ on an
+85\% Rayleigh clear blue sky ($1.81$ at 100\% Rayleigh), falling well short of
+the measured clear-sky median of $2.19$. Adding a least-squares
+white-point-preserving $3\times 3$ CCM to the same Bayer curves
+(Bayer$+$CCM), or using the sensor-independent CIE-sRGB pipeline directly,
 reproduces clear blue sky ($B/G=2.15$--$2.17$) and overcast sky ($B/G=1.16$ at
 nominal 5600~K, rising to $1.26$--$1.34$ if effective WB sits near 5200~K or
 overcast CCT near 7000~K).
@@ -287,13 +279,13 @@ overcast CCT near 7000~K).
   \centering
   \footnotesize
   \setlength{\tabcolsep}{4.5pt}
-  \caption{Camera-pipeline validation against the monitor's own daytime archive
+  \caption{Camera-pipeline validation against the monitor's daytime archive
   (fixed WB~5600~K) and resulting 3-component lightning mixture solves for the
-  flash ($R/G=1.028$, $B/G=1.854$, 3~km Rayleigh). Un-matrixed Bayer fails on
-  clear blue sky and forces a spurious 12--19\% \Ntp{} requirement; restoring
-  the CCM (or CIE-sRGB) matches daytime skies and favors optically thin Kramers
-  continuum with weak or zero \Ntp{}. Negative weights (\emph{infeasible})
-  indicate the target lies outside the non-negative simplex.}
+  flash ($R/G=1.028$, $B/G=1.854$, 3~km Rayleigh). Un-matrixed Bayer curves
+  fail on clear blue sky; color-corrected pipelines (Bayer$+$CCM and CIE-sRGB)
+  match daytime skies and favor an optically thin Kramers continuum with weak
+  or zero \Ntp{}. Negative weights (\emph{infeasible}) indicate the target
+  lies outside the non-negative simplex.}
   \label{tab:validation}
   \begin{tabular}{@{}lcccc@{}}
     \toprule
@@ -322,55 +314,53 @@ propagated through neutral cloud diffusion plus clear-air Rayleigh extinction
 (\S\ref{sec:engineering}). For any fixed set of three templates, the
 normalization constraint leaves \emph{two} free weights against \emph{two}
 measured chromatic ratios---zero degrees of freedom, a unique linear solve
-rather than an over-determined fit. The closure test still carries real
+rather than an over-determined fit. The closure test retains genuine
 falsification power because the non-negative simplex ($w_i\ge 0$) occupies
 only a small wedge of the $(R/G,B/G)$ plane (Fig.~\ref{fig:spectrum}b).
 
-Restoring the CCM reverses one headline conclusion of earlier versions while
-sharpening two others:
+Under the validated CIE-sRGB (5600~K) pipeline with an optically thin
+30\,000~K Kramers continuum and the core atomic template, the exact solve is
+\begin{equation}
+  (w_c,\,w_a,\,w_m) = (0.57,\,0.38,\,0.05)
+  \;\;\longrightarrow\;\;
+  R/G = 1.028,\quad B/G = 1.854,
+\end{equation}
+reproducing the observed sky band to within 1~DN: modeled $(173,171,224)$
+versus measured $(172,170,223)$ (Fig.~\ref{fig:spectrum}a). Three structural
+conclusions follow across our sensitivity checks:
 \begin{enumerate}\itemsep3pt
-  \item \emph{\Ntp{} is permitted ($0$--$14\%$), not required.} In the
-  un-matrixed Bayer model, omitting the CCM depressed 30\,000~K Planck from
-  $B/G=2.10$ down to $1.64$ and atomic lines from $2.22$--$2.62$ down to
-  $1.56$, artificially placing both below the measured $1.85$ and forcing
-  $w_m=0.12$--$0.19$ solely to make up for the missing matrix. Under the
-  validated CIE-sRGB (5600~K) pipeline with an optically thin 30\,000~K
-  Kramers continuum and the core atomic template, the exact solve is
-  \begin{equation}
-    (w_c,\,w_a,\,w_m) = (0.57,\,0.38,\,0.05)
-    \;\;\longrightarrow\;\;
-    R/G = 1.028,\quad B/G = 1.854,
-  \end{equation}
-  reproducing the observed sky band to within 1~DN ($(173,171,224)$ vs.\
-  $(172,170,223)$; Fig.~\ref{fig:spectrum}a). Under empirical CRF
-  linearization ($B/G=1.905$), $w_m=0.07$; under Bayer$+$CCM with the core
-  template $w_m=0.14$, while with the expanded 22-line atomic template or an
-  overcast-calibrated 5200~K WB, $w_m$ drops to $0$ (Table~\ref{tab:validation}).
-  This brings the single-pixel color into full agreement with return-stroke
-  spectroscopy, where \Ntp{} is weak or absent in the hot channel
-  \citep{salanave1962,walker2017,walker2019}.
-
   \item \emph{Optically thin (and/or cooling) continuum is favored over
   30\,000~K Planck.} Under CIE-sRGB and Bayer$+$CCM at 5600~K (3~km Rayleigh),
-  both 30\,000~K Planck ($B/G=2.10$) and the atomic line template
+  both a 30\,000~K Planck continuum ($B/G=2.10$) and the atomic line template
   ($B/G=2.22$--$2.62$) lie \emph{above} the measured flash ($B/G=1.85$--$1.97$;
   Fig.~\ref{fig:spectrum}b). No non-negative mixture of 30\,000~K Planck,
   atomic lines, and \Ntp{} can lower $B/G$ to the measurement unless either
   the continuum is optically thin Kramers ($B/G=1.13$--$1.25$ at
-  20\,000--30\,000~K), as established by \citet{uman1965}, or atmospheric path
-  reddening is substantially stronger than 3~km (at 10~km Rayleigh path,
-  30\,000~K Planck drops to $B/G=1.84$--$1.86$).
+  20\,000--30\,000~K), as established spectroscopically by \citet{uman1965},
+  or atmospheric path reddening is substantially stronger than 3~km (at 10~km
+  Rayleigh path, 30\,000~K Planck drops to $B/G=1.84$--$1.86$).
 
   \item \emph{H$\alpha$ (656.3~nm) is strictly required.} Removing H$\alpha$
   from the atomic template collapses its red ratio from $R/G=1.24$ to $0.36$
-  in CIE-sRGB (and $1.90\to 0.26$ in Bayer$+$CCM, $1.19\to 0.55$ without CCM).
-  Every hot continuum also sits below unity ($R/G=0.60$ Planck, $0.91$ Kramers
-  30\,000~K, $0.98$ Kramers 20\,000~K), and \Ntp{} sits in the violet with
-  negligible red energy. No non-negative mixture without H$\alpha$ can cross
-  $R/G=1$ under \emph{any} camera pipeline (Fig.~\ref{fig:spectrum}b). The
-  lavender hue is genuinely built from nitrogen's blue--violet ions (and hot
-  continuum) at one end and humid-air hydrogen's red H$\alpha$ at the other,
-  with the green channel left as the local minimum between them.
+  in CIE-sRGB (and $1.90\to 0.26$ in Bayer$+$CCM). Every hot continuum also
+  sits below unity ($R/G=0.60$ Planck, $0.91$ Kramers 30\,000~K, $0.98$
+  Kramers 20\,000~K), and \Ntp{} sits in the violet with negligible red
+  energy. No non-negative mixture without H$\alpha$ can cross $R/G=1$ under
+  \emph{any} camera pipeline (Fig.~\ref{fig:spectrum}b). The lavender hue is
+  built from nitrogen's blue--violet ions (and hot continuum) at one end and
+  humid-air hydrogen's red H$\alpha$ at the other, with the green channel left
+  as the local minimum between them.
+
+  \item \emph{Molecular \Ntp{} emission is bounded ($0$--$14\%$), not
+  required.} In CIE-sRGB at 5600~K, the Kramers$+$atomic solve puts $w_m=0.05$
+  ($0.07$ under empirical CRF linearization at $B/G=1.905$); Bayer$+$CCM with
+  the core template gives $w_m=0.14$, whereas using the expanded 22-line
+  atomic template or an overcast-calibrated 5200~K white balance drives $w_m$
+  to $0$ (Table~\ref{tab:validation}). This agrees directly with slitless and
+  high-speed triggered-lightning spectroscopy, where \Ntp{} is weak or absent
+  in the bright return-stroke channel \citep{salanave1962,walker2017,walker2019}.
+  (Omitting the CCM artificially depresses broadband blueness from $B/G\ge 2.1$
+  down to $\le 1.64$, which would falsely mimic a large \Ntp{} band.)
 \end{enumerate}
 
 \begin{figure}[t]
@@ -388,8 +378,8 @@ sharpening two others:
   continuum), with every modeled line labeled alongside the approximate Bayer
   passbands (670~nm IR-cut, 398~nm UV edge). (b)~Colorimetric closure and
   archive validation in linear $(R/G,B/G)$ space. Archive clear blue sky
-  ($n=288$, blue triangle) refutes the un-matrixed Bayer model (red cross and
-  dotted ceiling) and validates CIE-sRGB (open blue triangle). In CIE-sRGB,
+  ($n=288$, blue triangle) rules out un-matrixed Bayer curves (red cross and
+  dotted line) and validates CIE-sRGB (open blue triangle). In CIE-sRGB,
   Planck 30\,kK $+$ Atomic (dashed) is too blue, while Kramers 30\,kK $+$
   Atomic ($w_m=0$, solid purple) passes beside all three flash estimates
   (top-25\% sRGB star, empirical CRF diamond, unclipped sky open circle; shaded
@@ -408,12 +398,11 @@ available, in ascending order of effort:
 \emph{(i)~Time-resolved priors.} Spectrophotometry constrains typical
 return-stroke continuum and line ratios across stroke phases
 \citep{orville1968,orvillehenderson1984,walker2019}.
-\emph{(ii)~Completing in-scene calibration.} Here we used the daytime sky
-archive and bracket-derived empirical CRF to validate the CCM and retire the
-sRGB tone-curve bias; photographing a Macbeth ColorChecker and fitting the
-in-scene high-pressure-sodium streetlamps (whose halos already sit in the
-baseline frame at $R/G=1.84$, $B/G=0.08$) would directly measure this unit's
-CCM and exact 656~nm red transmission.
+\emph{(ii)~In-scene spectrophotometric calibration.} Beyond the daytime sky
+archive and bracket-derived CRF used here, photographing a Macbeth
+ColorChecker and fitting the in-scene high-pressure-sodium streetlamps (whose
+halos already sit in the baseline frame at $R/G=1.84$, $B/G=0.08$) would
+directly measure this specific unit's CCM and exact 656~nm red transmission.
 \emph{(iii)~A fourth band.} Narrowband filters centered at 427.8~nm (\Ntp{})
 and 656.3~nm (H$\alpha$), or a second camera with a steeper 650~nm IR-cut,
 turn $w_m$ and H$\alpha$ into direct photometry.
@@ -438,16 +427,16 @@ and smears arrival time (by tens of microseconds per kilometer of diffusion
 path) while remaining nearly chromatically neutral
 \citep{thomasonkrider1982,koshak1994,bohren1987}. Liquid- and vapor-phase
 water absorption across 400--700~nm is negligible over these path lengths.
-Importantly, lossless elastic scattering by a neutral cloud deck at midnight
-cannot manufacture white light to desaturate the flash (ambient skyglow is
-dim sodium-amber, $40\times$ fainter than the flash): the cloud preserves the
-source chromaticity, and the lavender is pale (CIE excitation purity
-$\approx 23\%$) purely because the lightning spectrum itself is broadband.
-Between the cloud deck and the camera we include clear-air Rayleigh extinction
-over an assumed 3~km effective path, $\tau(\lambda)=0.036\,(550/\lambda)^4$,
-and note that a more distant cell ($\sim$10~km path, or humid summer boundary-layer
-aerosols) adds stronger blue attenuation that shifts the inferred continuum
-toward the bluer Planck side (\S\ref{sec:fit}).
+Because lossless elastic scattering by a neutral cloud deck at midnight cannot
+create white light (ambient skyglow is dim sodium-amber, $40\times$ fainter
+than the flash), the cloud preserves the source chromaticity; the lavender is
+pale (CIE excitation purity $\approx 23\%$) purely because the lightning
+spectrum itself is broadband. Between the cloud deck and the camera we include
+clear-air Rayleigh extinction over an assumed 3~km effective path,
+$\tau(\lambda)=0.036\,(550/\lambda)^4$, noting that a more distant cell
+($\sim$10~km path, or humid summer boundary-layer aerosols) adds stronger blue
+attenuation that shifts the inferred continuum toward the bluer Planck side
+(\S\ref{sec:fit}).
 
 \textbf{Silicon and ISP.} The camera (Elgato Facecam~4K, Sony STARVIS~2
 IMX678-class BSI CMOS sensor) is operated in manual exposure and gain with
@@ -457,28 +446,28 @@ Gaussians (B:~455/38~nm, G:~535/45~nm, R:~612/48~nm) within the
 edge. At H$\alpha$ (656.3~nm), the Gaussian red curve ($0.653$) times the
 IR-cut transmission ($0.907$) retains $0.59$ of peak sensitivity---high enough
 for H$\alpha$ to lift $R$ to parity with $G$, whereas a sharper 650~nm IR-cut
-would render the flash noticeably bluer. As demonstrated in \S\ref{sec:fit},
-two ISP stages beyond raw Bayer integration are indispensable: (1)~the
-$3\times 3$ CCM that decorrelates the overlapping Bayer filters into linear
-sRGB, and (2)~the nonlinear per-channel tone curve, whose empirical calibration
-(\S\ref{sec:obs}) eliminates brightness-dependent $R/G$ drift and exposes the
-highlight shoulder above DN~220.
+would render the flash noticeably bluer. As shown in \S\ref{sec:obs} and
+\S\ref{sec:fit}, two ISP stages beyond raw Bayer integration govern the
+radiometry: (1)~the $3\times 3$ CCM that decorrelates the overlapping Bayer
+filters into linear sRGB, and (2)~the nonlinear per-channel tone curve, whose
+empirical calibration eliminates brightness-dependent $R/G$ drift and exposes
+the highlight shoulder above DN~220.
 
 \section{Meteorology}
 The synoptic context was a warm, humid, overcast boundary layer. In the
 monitor's local weather log (\code{science.csv}), Pittsburgh sat at
 73--74$^\circ$F, 94--100\% overcast, and 81--85\% surface relative humidity
 across 00:00--01:00~EDT (rising to 94\% by 01:44~EDT), with light drizzle
-already noted at 23:29~EDT; ERA5 reanalysis similarly places a saturated low
-overcast deck (86--90\% surface humidity) and regional drizzle over the area
-without flagging a grid-point thunderstorm \citep{hersbach2020}. The flash
-almost certainly came from an isolated convective cell embedded within or
-beyond the stratiform deck, of the sub-grid scale reanalysis routinely smooths
-away. Two weaker blue sky excursions at 00:33 and 00:39~EDT (22 and 28~minutes
-after the main frame) are consistent with the same small cell passing at
-greater distance. The humid overcast mattered twice: abundant water vapor fed
-the mandatory H$\alpha$ line (\S\ref{sec:fit}), and the low cloud deck
-provided the hemispheric projection screen. The capture is also a one-frame
+noted at 23:29~EDT; ERA5 reanalysis similarly places a saturated low overcast
+deck (86--90\% surface humidity) and regional drizzle over the area without
+flagging a grid-point thunderstorm \citep{hersbach2020}. The flash almost
+certainly came from an isolated convective cell embedded within or beyond the
+stratiform deck, of the sub-grid scale reanalysis routinely smooths away. Two
+weaker blue sky excursions at 00:33 and 00:39~EDT (22 and 28~minutes after the
+main frame) are consistent with the same small cell passing at greater
+distance. The humid overcast mattered twice: abundant water vapor fed the
+mandatory H$\alpha$ line (\S\ref{sec:fit}), and the low cloud deck provided
+the hemispheric projection screen. The capture is also a one-frame
 demonstration of fixed-exposure urban sky monitoring: a 100~ms exposure every
 $\sim$326~s is a $\sim$1-in-3260 duty cycle, yet over a season of nights even
 brief transients land in frames whose radiometry remains quantitatively
@@ -528,7 +517,7 @@ Cold-plasma nitrogen fixation in tropospheric streamers and corona therefore
 proceeds mainly via direct electron-impact dissociation of neutral N$_2$
 ($\mathrm{e^- + N_2 \to e^- + N + N}$), with any \Ntp{} violet emission
 serving as an energetic-electron tracer of that cold-plasma envelope rather
-than the primary chemical intermediate itself. Our revised upper bound
+than the primary chemical intermediate itself. Our upper bound
 ($w_m \le 0.14$, compatible with zero) aligns with the global NO$_x$ budget,
 which is overwhelmingly dominated by the hot-channel thermal factory.
 
@@ -544,8 +533,8 @@ modern atmosphere, lightning NO oxidizes within minutes via ozone to
 NO$_2$---observed as column enhancements under storms since
 \citet{noxon1976}---and then, over timescales of hours at night (via
 $\mathrm{NO_2 + O_3 \to NO_3}$, $\mathrm{N_2O_5}$ formation, and heterogeneous
-hydrolysis on cloud droplets and aerosols \cite{seinfeld2016}), converts
-to nitric acid and scavenges into precipitation as nitrate. Over the course of
+hydrolysis on cloud droplets and aerosols \cite{seinfeld2016}), converts to
+nitric acid and scavenges into precipitation as nitrate. Over the course of
 the wet overnight system, storm-fixed nitrate washed down onto the regional
 watershed and the campus lawns in the image foreground---the same lawns whose
 green chromatic coordinate this instrument logs daily as a phenology metric.
@@ -601,9 +590,7 @@ half-mourning: for a tenth of a second, the sky over Pittsburgh wore it.
 
 \section{Holes in the theory}
 \label{sec:holes}
-In decreasing order of remaining concern (after retiring the omitted-CCM
-error, pixel-linearization bias, and uncalibrated tone-curve assumption of
-earlier versions):
+In decreasing order of concern:
 (1)~\emph{Exact unit CCM, white point, and IR-cut.} Daytime archive skies
 validate a colorimetrically accurate sRGB pipeline, but the overcast median
 ($B/G=1.32$ vs.\ $1.16$ for 6500~K at nominal 5600~K WB) hints at either a
@@ -638,7 +625,7 @@ and figure in this paper---the full-resolution 4K reference frame triplet, the
 the LaTeX source---are publicly archived at
 \url{https://github.com/simon-dedeo/lavender-flash}.
 
-\begin{thebibliography}{33}
+\begin{thebibliography}{36}
 
 \bibitem[Albers(1963)]{albers1963}
 J.~Albers, \emph{Interaction of Color} (Yale University Press, New Haven,

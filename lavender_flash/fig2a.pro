@@ -28,7 +28,7 @@ pro fig2a
   la = la/total(la*dl)
   lm = lm/total(lm*dl)
 
-  ; v4 CIE-sRGB 5600 K exact solve (3 km Rayleigh)
+  ; CIE-sRGB 5600 K exact solve (3 km Rayleigh)
   wc = 0.574d & wa = 0.376d & wm = 0.050d
   spec = wc*co + wa*la + wm*lm
   pk = max(spec)

@@ -1,30 +1,25 @@
 """Colorimetric closure test and archive camera calibration for the
-August 9, 2026 lightning flash ("The Lavender Flash of August 9th", v4).
+August 9, 2026 lightning flash ("The Lavender Flash of August 9th").
 
 Single source of truth for all numbers and figures in LAVENDER_FLASH.tex.
 
 What this script computes:
-  1. Direct radiometry on the archived 4K reference triplet in ../tmp/
-     (lightning_before_0006EDT.jpg, lightning_flash_0011EDT.jpg,
-      lightning_after_0017EDT.jpg):
-     - Pixel-wise linearization (avoiding Jensen bias from linearizing means)
-       under BOTH standard sRGB (IEC 61966-2-1) and the empirical per-channel
-       Camera Response Function (CRF) measured independently for this Elgato
-       Facecam 4K from daytime exposure brackets (flatfield.py / spotnight.py).
+  1. Direct radiometry on the archived 4K reference triplet:
+     - Pixel-wise linearization under both standard sRGB (IEC 61966-2-1) and
+       the empirical per-channel Camera Response Function (CRF) calibrated for
+       this Elgato Facecam 4K from daytime exposure brackets.
      - Baseline sensitivity (before vs after vs mean), blue-channel clipping
        and highlight-shoulder roll-off diagnostics, and full-frame vertical
        profile (rolling-shutter uniformity check).
      - Exact CIE 1931 2-deg chromaticity (x, y), dominant wavelength, and
        excitation purity.
-  2. Archive camera-pipeline validation from ../golden_analysis/science.csv
-     (high-sun overcast skies, n=481; high-sun clear blue skies, n=288;
-      fixed WB=5600 K):
-     - Demonstrates that un-matrixed Bayer Gaussians (v3) fail on ordinary
-       clear blue daytime sky (max B/G ~ 1.81 vs measured median 2.19).
-     - Demonstrates that restoring a white-point-preserving 3x3 Color
-       Correction Matrix (CCM, mapping Bayer -> linear sRGB) or using the
-       sensor-independent CIE-sRGB benchmark reproduces daytime overcast and
-       clear-sky colors.
+  2. Archive camera-pipeline validation from science.csv (high-sun overcast
+     skies, n=481; high-sun clear blue skies, n=288; fixed WB=5600 K):
+     - Shows that raw un-matrixed Bayer Gaussians fail on clear blue daytime
+       sky (max B/G ~ 1.81 vs measured median 2.19), whereas a white-point-
+       preserving 3x3 Color Correction Matrix (CCM, mapping Bayer -> linear
+       sRGB) or the sensor-independent CIE-sRGB benchmark reproduces daytime
+       overcast and clear-sky colors.
   3. Three-component lightning emission model (continuum + atomic lines +
      N2+ 1N molecular bands) through neutral cloud diffusion + Rayleigh
      extinction, evaluated across camera pipelines, continuum opacity/T
@@ -33,10 +28,7 @@ What this script computes:
   4. Publication figures:
      - fig2a.pdf : Best-fit optically-thin Kramers + atomic (+ bounded N2+)
                    emission spectrum and camera sensitivities (log-linear).
-     - fig2b.pdf : (R/G, B/G) closure & archive-validation diagnostic plane,
-                   showing daytime sky validation, un-matrixed Bayer vs
-                   Bayer+CCM / CIE-sRGB, continuum/line vertices, and the
-                   Halpha ablation proof.
+     - fig2b.pdf : (R/G, B/G) closure & archive-validation diagnostic plane.
      - fig3_radiometry.pdf : Brightness-binned flash sky diagnostics (sRGB vs
                    empirical CRF flatness, and blue-channel highlight roll-off).
 """
@@ -515,11 +507,11 @@ def make_figures(rad, arch, cmfs, specs, solutions):
     ax.plot(mix_pa[:, 0], mix_pa[:, 1], color="#888884", lw=1.2, ls="--", zorder=3,
             label=r"Planck 30 kK + Atomic ($w_m=0$)")
 
-    # Plot un-matrixed Bayer Planck+Atomic ceiling for contrast
+    # Plot un-matrixed Bayer Planck+Atomic ceiling for comparison
     p_pl_no = rgb_ratios(cam_rgb(specs["cp30"], cmf_noccm, 3.0))
     p_at_no = rgb_ratios(cam_rgb(specs["la_core"], cmf_noccm, 3.0))
     ax.plot([p_pl_no[0], p_at_no[0]], [p_pl_no[1], p_at_no[1]], color="#b03a2e", lw=1.2, ls=":", zorder=3,
-            label="v3 Bayer no-CCM ceiling")
+            label="Bayer without CCM")
 
     # Component markers
     for pt, txt, dx, dy, col in [
