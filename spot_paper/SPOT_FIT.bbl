@@ -1,4 +1,4 @@
-\begin{thebibliography}{32}
+\begin{thebibliography}{33}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -130,6 +130,14 @@ J.~P. Lewis.
 \newblock Expanded and corrected version: \emph{Fast Normalized
   Cross-Correlation}, Industrial Light \& Magic,
   \url{http://scribblethink.org/Work/nvisionInterface/nip.pdf}.
+
+\bibitem[Lucas and Kanade(1981)]{lucas1981iterative}
+Bruce~D. Lucas and Takeo Kanade.
+\newblock An iterative image registration technique with an application to
+  stereo vision.
+\newblock In \emph{Proceedings of the 7th International Joint Conference on
+  Artificial Intelligence (IJCAI~'81)}, pages 674--679, Vancouver, BC, Canada,
+  1981.
 
 \bibitem[Goodman(2017)]{goodman2017fourier}
 Joseph~W. Goodman.

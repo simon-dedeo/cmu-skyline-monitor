@@ -23,7 +23,7 @@ TMAP = os.path.join(HERE, "spot_tmap.npy")
 LOCKF = os.path.join(HERE, ".spot_lock.json")
 PROV = os.path.join(HERE, "spot_provenance.csv")
 FLAG = os.path.join(HERE, ".spot_apply_on")
-CODE_VERSION = "2026-11-24-bayes3"
+CODE_VERSION = "2026-11-24-bayes3-subpx"
 
 MAX_FIT_AGE_DAYS = 30.0
 EXTRAP_DAYS = (-0.5, 3.5)
@@ -99,8 +99,26 @@ def _rival_peak(cc, loc, w=12):
     return best
 
 
+def _subpx_peak(cc, loc):
+    """2D quadratic subpixel peak refinement around integer loc=(x, y), clamped to [-0.5, 0.5]."""
+    x, y = int(loc[0]), int(loc[1])
+    H, W = cc.shape
+    fx = fy = 0.0
+    if 0 < x < W - 1:
+        l, c, r = float(cc[y, x - 1]), float(cc[y, x]), float(cc[y, x + 1])
+        den = l - 2.0 * c + r
+        if den < -1e-9:
+            fx = float(np.clip(0.5 * (l - r) / den, -0.5, 0.5))
+    if 0 < y < H - 1:
+        u, c, d = float(cc[y - 1, x]), float(cc[y, x]), float(cc[y + 1, x])
+        den = u - 2.0 * c + d
+        if den < -1e-9:
+            fy = float(np.clip(0.5 * (u - d) / den, -0.5, 0.5))
+    return fx, fy
+
+
 def measure_lock(win, T, rx, ry):
-    """Symmetric-range template lock relative to (rx, ry). Skips dark frames."""
+    """Symmetric-range subpixel template lock relative to (rx, ry). Skips dark frames."""
     g_raw = win.mean(axis=2).astype(np.float32)
     if float(np.median(g_raw)) < 30.0:
         return None, None, None, None
@@ -112,8 +130,8 @@ def measure_lock(win, T, rx, ry):
     xr = LOCK_RANGE
     gray = _crf_eval(g_raw, 0.45, 3.8).astype(np.float32)
     bgs = cv2.GaussianBlur(gray, (0, 0), 45)
-    dmap = cv2.GaussianBlur(np.clip(1.0 - gray / np.maximum(bgs, 1e-6), -0.1, 0.3).astype(np.float32), (0, 0), 4)
-    tpl0 = cv2.GaussianBlur((1.0 - T.mean(axis=2)).astype(np.float32), (0, 0), 4)
+    dmap = cv2.GaussianBlur(np.clip(1.0 - gray / np.maximum(bgs, 1e-6), -0.1, 0.3).astype(np.float32), (0, 0), 3)
+    tpl0 = cv2.GaussianBlur((1.0 - T.mean(axis=2)).astype(np.float32), (0, 0), 3)
     ty0, ty1 = int(max(ry - 45, 0)), int(min(ry + 45, h2))
     tx0, tx1 = int(max(rx - 55, 0)), int(min(rx + 55, h2))
     sy0, sy1 = max(ty0 - yr, 0), min(ty1 + yr, h2)
@@ -121,8 +139,9 @@ def measure_lock(win, T, rx, ry):
     cc = cv2.matchTemplate(dmap[sy0:sy1, sx0:sx1], tpl0[ty0:ty1, tx0:tx1], cv2.TM_CCOEFF_NORMED)
     _, pk, _, loc = cv2.minMaxLoc(cc)
     pk2 = _rival_peak(cc, loc)
-    dx, dy = (sx0 + loc[0]) - tx0, (sy0 + loc[1]) - ty0
-    if pk >= LOCK_MIN_PK and (pk - pk2) >= LOCK_MARGIN and abs(dx) <= xr and abs(dy) <= yr:
+    fx, fy = _subpx_peak(cc, loc)
+    dx, dy = (sx0 + loc[0] + fx) - tx0, (sy0 + loc[1] + fy) - ty0
+    if pk >= LOCK_MIN_PK and (pk - pk2) >= LOCK_MARGIN and abs(dx) <= xr + 0.5 and abs(dy) <= yr + 0.5:
         return float(dx), float(dy), float(pk), pk2
     return None, None, float(pk), pk2
 
@@ -280,11 +299,80 @@ def _flatten_set(outs, wins, T, rx, ry, mm):
             w[:, :, c] = _crf_inv(lin / Tc, a, g_exp)
 
 
+def _refine_rim(wins, T, rx, ry, mm):
+    """Gauss-Newton subpixel rim alignment (Lucas-Kanade on the flat-top edge gradient).
+
+    Minimizes rim dipole residuals jointly across clean unclipped brackets in CRF linear
+    radiance, with MAP shrinkage toward (0, 0) on textured skies so clouds never pull it.
+    Returns (ddx, ddy) clamped to [-2.5, 2.5] px.
+    """
+    h2 = T.shape[0]
+    yy, xx = np.mgrid[0:h2, 0:h2]
+    rb = np.hypot(xx - rx, yy - ry)
+    ring = (rb >= RING0) & (rb < RING1) & (yy >= TOP_MASK)
+    if ring.sum() < 400:
+        ring = (rb >= 70) & (rb < 130) & (yy >= TOP_MASK)
+    core = (rb < R_CORE) & (yy >= TOP_MASK)
+    foot = cv2.GaussianBlur((rb < 82).astype(np.float32), (0, 0), 8)
+    valid_m = (foot > 0.05) & (yy >= TOP_MASK)
+    ay, ax = np.where(ring)
+    ur, vr = (ax - rx) / 100.0, (ay - ry) / 100.0
+    ue, ve = ((xx - rx) / 100.0).ravel(), ((yy - ry) / 100.0).ravel()
+    A = np.column_stack([np.ones_like(ur), ur, vr, ur * ur, ur * vr, vr * vr])
+    E = np.column_stack([np.ones_like(ue), ue, ve, ue * ue, ue * ve, ve * ve])
+    pen = RIDGE_QUAD if ry < RING1 + TOP_MASK else (2.0, 2.0, 2.0)
+    R = np.diag([0.0, 0.0, 0.0, pen[0], pen[1], pen[2]])
+    crf = mm.get("crf") or DEFAULT_CRF
+
+    # Accumulate 2x2 normal equations for (ddx, ddy) across clean brackets (B & G highest SNR)
+    H_tot = np.zeros((2, 2), dtype=np.float64)
+    g_tot = np.zeros(2, dtype=np.float64)
+    n_used = 0
+    for c, ch in ((0, "b"), (1, "g")):
+        a, g_exp = crf.get(ch, DEFAULT_CRF[ch])
+        D = np.clip(1.0 - T[:, :, c].astype(np.float64), 0.0, 0.25) * foot
+        d0 = max(float(np.median(D[core])), 1e-4)
+        p = D / d0
+        # Smooth template slightly before taking spatial gradient so rim slope is noise-free
+        ps = cv2.GaussianBlur(p.astype(np.float32), (0, 0), 1.5).astype(np.float64)
+        py_g, px_g = np.gradient(ps)
+        for w in wins:
+            raw = w[:, :, c].astype(np.float64)
+            Lmed = float(np.median(raw[ring]))
+            if (raw[ring | core] > 250).mean() > 0.01 or Lmed < 25:
+                continue
+            lin = _crf_eval(raw, a, g_exp)
+            B, mad = _fit_sky(lin[ring], A, E, R, (h2, h2))
+            lvl = max(float(np.median(B[ring])), 1e-6)
+            rough = mad / lvl
+            um = valid_m & (raw < 251) & (raw > 5) & (B > 1e-5)
+            if rough > 0.035 or um.sum() < 400:
+                continue
+            obs_def = np.clip(1.0 - lin[um] / B[um], -0.15, 0.25)
+            pw = p[um]
+            d_hat = float(np.dot(pw, obs_def) / max(np.dot(pw, pw), 1e-6))
+            if d_hat < 0.015:
+                continue
+            resid = obs_def - d_hat * pw
+            # Linearized model: resid ~= (-d_hat * px_g) * ddx + (-d_hat * py_g) * ddy
+            J = np.column_stack([-d_hat * px_g[um], -d_hat * py_g[um]])
+            inv_var = 1.0 / (max(rough, 0.005) ** 2)
+            H_tot += inv_var * (J.T @ J)
+            g_tot += inv_var * (J.T @ resid)
+            n_used += 1
+    if n_used == 0:
+        return 0.0, 0.0
+    # MAP prior toward 0 (sigma_pos = 1.5 px) keeps noisy/cloudy frames completely stable
+    prior_prec = 1.0 / (1.5 ** 2)
+    step = np.linalg.solve(H_tot + np.eye(2) * prior_prec, g_tot)
+    return float(np.clip(step[0], -2.5, 2.5)), float(np.clip(step[1], -2.5, 2.5))
+
+
 def _shift(T, sx, sy):
     h2 = T.shape[0]
     M = np.float32([[1, 0, sx], [0, 1, sy]])
-    return np.stack([cv2.warpAffine(T[:, :, c], M, (h2, h2), flags=cv2.INTER_LINEAR,
-                                    borderMode=cv2.BORDER_CONSTANT, borderValue=1.0)
+    return np.stack([np.clip(cv2.warpAffine(T[:, :, c], M, (h2, h2), flags=cv2.INTER_CUBIC,
+                                            borderMode=cv2.BORDER_CONSTANT, borderValue=1.0), 0.5, 1.05)
                      for c in range(3)], axis=2)
 
 
@@ -337,13 +425,26 @@ def correct_set(imgs):
         if len(near) >= 2:
             px = float(np.median([e["cx"] for e in near]))
             py = float(np.median([e["cy"] for e in near]))
-    sx, sy = px - (x0 + rx), py - (y0 + ry)
+        elif len(near) == 1 and float(near[0].get("corr", 0.0)) >= 0.70:
+            px, py = float(near[0]["cx"]), float(near[0]["cy"])
+    T0, rx0, ry0 = T, rx, ry
+    sx, sy = px - (x0 + rx0), py - (y0 + ry0)
     mag = float(np.hypot(sx, sy))
     if mag > SHIFT_CAP:
         sx, sy = sx * SHIFT_CAP / mag, sy * SHIFT_CAP / mag
-    if abs(sx) > 0.5 or abs(sy) > 0.5:
-        T = _shift(T, sx, sy)
-        rx, ry = rx + sx, ry + sy
+    if abs(sx) > 0.05 or abs(sy) > 0.05:
+        T = _shift(T0, sx, sy)
+        rx, ry = rx0 + sx, ry0 + sy
+
+    # Subpixel Gauss-Newton rim alignment on confirmed clean-sky locks (kills faint edge crescents)
+    if lock == 1 and pk is not None and pk >= 0.65 and not os.environ.get("SPOT_NO_LOCK"):
+        for _ in range(2):
+            ddx, ddy = _refine_rim(wins, T, rx, ry, mm)
+            if abs(ddx) <= 0.05 and abs(ddy) <= 0.05:
+                break
+            sx, sy = sx + ddx, sy + ddy
+            T = _shift(T0, sx, sy)
+            rx, ry = rx0 + sx, ry0 + sy
 
     if is_hdr:
         _provenance([now.isoformat(timespec="seconds"), mm.get("updated", ""),

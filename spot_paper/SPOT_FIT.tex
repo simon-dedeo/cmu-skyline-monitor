@@ -299,14 +299,19 @@ seasons and edge-clamped geometries:
 Every 5~minutes on \code{pandr}, \code{flatfield.py} corrects the three raw HDR
 brackets in CRF linear radiance before Mertens fusion:
 
-\paragraph{1. Placement (prediction + symmetric lock).}
+\paragraph{1. Placement (prediction + subpixel rim-aligned lock).}
 The bundle's published position is extrapolated from \code{fit\_epoch} by velocity
 (clamped to $[-0.5, 3.5]$~days and $\le \SI{40}{px}$). On daylight HDR calls
-(median $> 30$~DN), a single normalized cross-correlation template lock
-\citep{lewis1995ncc} runs on the brightest unclipped bracket using a \emph{symmetric}
-vertical search bound $r_y = \min(25, \max(0, y - 48))$ so top-edge proximity never
-biases the search downward; decisive locks ($\mathrm{NCC} \ge 0.50$, rival-peak margin
-$\ge 0.08$) are smoothed over a trailing 1-hour window.
+(median $> 30$~DN), a normalized cross-correlation template lock
+\citep{lewis1995ncc} with 2D quadratic subpixel peak refinement runs on the brightest
+unclipped bracket using a \emph{symmetric} vertical search bound
+$r_y = \min(25, \max(0, y - 48))$ so top-edge proximity never biases the search
+downward; decisive locks ($\mathrm{NCC} \ge 0.50$, rival-peak margin $\ge 0.08$) are
+smoothed over a trailing 1-hour window. On confirmed clean-sky locks
+($\mathrm{NCC} \ge 0.65$), two regularized Gauss--Newton (Lucas--Kanade
+\citep{lucas1981iterative}) iterations on the flat-top edge gradient refine
+$(\delta x, \delta y)$ directly in CRF linear radiance using bicubic resampling,
+eliminating sub-pixel rim crescents without risking drift on textured clouds.
 
 \paragraph{2. Conjugate Bayesian MAP depth across brackets.}
 From the placed map $T_c$, we extract the normalized 2D spatial shape
@@ -548,11 +553,12 @@ near $y \approx 68$ include both optical residuals and the CLAHE tile-seam bias.
     \includegraphics[width=\textwidth]{figs/crop_after.png}\caption{after}
   \end{subfigure}\hfill
   \begin{subfigure}{0.32\textwidth}
-    \includegraphics[width=\textwidth]{figs/diff.png}\caption{difference, $6\times$}
+    \includegraphics[width=\textwidth]{figs/diff.png}\caption{optical diff., $15\times$}
   \end{subfigure}
-  \caption{Pixel-scale detail of Figure~\ref{fig:full} (2026-07-25): the difference
-  (right, $6\times$) is a single compact blob; nothing outside the footprint is
-  modified, and local photon noise is preserved.}
+  \caption{Pixel-scale detail of Figure~\ref{fig:full} (2026-07-25) under the
+  subpixel-aligned CRF + MAP corrector: the pre-CLAHE Mertens difference (right,
+  $15\times$) is a single compact blob; nothing outside the footprint is modified, no
+  rim crescent remains, and local photon noise is preserved.}
   \label{fig:ba}
 \end{figure}
 
