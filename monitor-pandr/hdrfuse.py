@@ -56,7 +56,7 @@ def main():
     # attenuation is multiplicative (~2%) and exposure-independent, so dividing it out on the
     # raw frames is exact; doing it after enhance() under-corrects (contrast amplifies the dip).
     try:
-        import flatfield; imgs = [flatfield.apply(im) for im in imgs]
+        import flatfield; imgs = flatfield.apply(imgs)
     except Exception as e:
         print("hdrfuse: flatfield skipped:", e)
     fused = cv2.createMergeMertens().process(imgs)            # float32 0..1

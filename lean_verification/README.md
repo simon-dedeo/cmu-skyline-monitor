@@ -1,7 +1,16 @@
-# Lean verification of Section 10
+# Lean verification of Section 10 (v11 historical archive)
+
+> **v12 note (2026-11-24):** `SpotFit/Section10.lean` archives the machine-checked
+> rational arithmetic of **v11** (2026-07-28) Section 10. In **v12** (`spot_paper/SPOT_FIT.tex`
+> §7.3), two underlying physical assumptions of v11 Section 10 were retracted: (i) applying
+> collimated plane-wave extinction-paradox / Markel 60° arguments to a diffuse extended sky,
+> and (ii) the $\lambda^{-2}$ texture-recollection law (empirically refuted once the camera's
+> empirical CRF and $>12\sigma$ direct-sun forward-scattering coupling $k_{\mathrm{fac}}$ were
+> fitted). As this README noted from day one, Lean checks arithmetic bookkeeping from stated
+> hypotheses — it does not validate the physical hypotheses themselves.
 
 A machine-checked verification (Lean 4 + Mathlib, toolchain `v4.33.0-rc1`) of the
-quantitative spine of Section 10 of *Pittsburgh in a Grain of Sand*.
+quantitative spine of Section 10 of *Pittsburgh in a Grain of Sand* (v11).
 
 ## What is verified
 

@@ -1,49 +1,42 @@
 #!/usr/bin/env /Users/proofsandreasons/monitor/venv/bin/python3
-"""spot_ab.py — ongoing MATCHED A/B verification of the live spot corrector.
+"""spot_ab.py -- nightly matched A/B verification of the live spot corrector (pandr).
 
-Why this exists: the original A/B (archive_precorrect/ vs archive_corrected/, summarised in
-archive_corrected/backfill_log.csv) STOPPED on 2026-07-27, so from then until 2026-08-18 nothing
-measured whether the correction still worked -- a silent-decay risk on a public site. Measuring the
-residual on served frames alone does NOT substitute: enhance()'s CLAHE amplifies local texture, so
-control patches scatter +/-12-15% and swamp a sub-1% residual.
+Three arms per bracket triple: uncorrected, corrected as served (with lock), and corrected
+with lock disabled (SPOT_NO_LOCK). Measures BOTH:
+  * Mertens-only linear dip (true optical removal, per-channel B/G/R + gray, immune to the
+    +3% CLAHE tile-seam artifact at cy~68), AND
+  * Post-enhance display dip (for continuity with earlier logs).
 
-Method (a reconstruction of the July metric, so numbers are comparable but not bit-identical):
-for each sampled bracket triple, fuse it TWICE through the real pipeline -- Mertens + hdrfuse.enhance
--- once with flatfield._correct() applied per bracket and once without, then measure the DISPLAY dip
-at the blemish: median of the r<25 core against a quadratic fit of the r=105-130 annulus, in linear
-light, clipped to the frame (the blemish sits ~100 px from the top edge).
-
-The corrector is imported from a SANDBOX COPY so its per-tick provenance/lock side-effects can never
-write into the production spot_provenance.csv or .spot_lock.json -- that file is cited in the paper.
-The sandbox copies the LIVE model + tmap each run, so what is measured is the production corrector.
-
-Appends one row per frame to spot_lab/ab_log.csv and prints a summary. Fail-soft throughout.
-Run nightly from nightly.sh, or by hand:  venv/bin/python3 spot_ab.py [N_TRIPLES]
+Runs in a sandbox copy so provenance/lock side-effects never touch production files.
+Usage: venv/bin/python3 spot_ab.py [N_TRIPLES]
 """
-import os, sys, glob, csv, json, shutil, datetime, collections
+import os, sys, glob, csv, shutil, datetime, collections, statistics as st
 import numpy as np, cv2
 
 M   = os.path.expanduser("~/monitor")
 BR  = os.path.join(M, "spot_lab", "brackets")
-OUT = os.path.join(M, "spot_lab", "ab_log.csv")
-SB  = "/tmp/spot_ab_sandbox"
+OUT = os.environ.get("SPOT_AB_OUT", os.path.join(M, "spot_lab", "ab_log.csv"))
+SRC = os.environ.get("SPOT_AB_SRC", M)
+SB  = os.environ.get("SPOT_AB_SANDBOX", "/tmp/spot_ab_sandbox")
 HOURS_BACK = 26
-CORE_R, RING0, RING1 = 25, 105, 130
-CLEAN_TOL = 0.06                      # ring roughness/level below which the sky is "clean"
+TOP_MASK = 20
+CORE_R, RING0, RING1 = 25, 85, 115
+RIDGE_QUAD = (50.0, 50.0, 200.0)
+CLEAN_TOL = 0.04
 
 
 def _sandbox():
-    """Import flatfield from a throwaway dir so provenance/lock writes stay out of production."""
     shutil.rmtree(SB, ignore_errors=True)
     os.makedirs(SB)
-    for f in ("flatfield.py", "spot_model.json", "spot_tmap.npy"):
+    shutil.copy2(os.path.join(SRC, "flatfield.py"), os.path.join(SB, "flatfield.py"))
+    for f in ("spot_model.json", "spot_tmap.npy"):
         shutil.copy2(os.path.join(M, f), os.path.join(SB, f))
-    open(os.path.join(SB, ".spot_apply_on"), "w").close()   # ungated inside the sandbox only
+    open(os.path.join(SB, ".spot_apply_on"), "w").close()
     sys.path.insert(0, SB)
-    sys.path.append(M)                                      # for hdrfuse
+    sys.path.append(M)
     import flatfield
     if os.path.dirname(os.path.abspath(flatfield.__file__)) != SB:
-        raise RuntimeError("sandbox import failed -- refusing to run against production")
+        raise RuntimeError("sandbox import failed")
     return flatfield
 
 
@@ -52,45 +45,64 @@ def _srgb_lin(v):
     return np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
 
 
-def dip_pct(img, cx, cy):
-    """(display dip %, ring roughness/level). + = darker than the surrounding sky."""
+def dip_metrics(img, cx, cy):
+    """(gray_dip_pct, [b, g, r]_dip_pct, ring_roughness) with TOP_MASK=20 and ridge sky fit."""
     H, W = img.shape[:2]
-    y0, y1 = max(0, int(cy - RING1 - 5)), min(H, int(cy + RING1 + 5))
-    x0, x1 = max(0, int(cx - RING1 - 5)), min(W, int(cx + RING1 + 5))
+    y0, y1 = max(0, int(cy - RING1 - 10)), min(H, int(cy + RING1 + 10))
+    x0, x1 = max(0, int(cx - RING1 - 10)), min(W, int(cx + RING1 + 10))
     win = img[y0:y1, x0:x1].astype(np.float64)
     if win.size == 0:
-        return None, None
+        return None, None, None
     rx, ry = cx - x0, cy - y0
     yy, xx = np.mgrid[0:win.shape[0], 0:win.shape[1]]
-    rb = np.sqrt((xx - rx) ** 2 + (yy - ry) ** 2)
-    ring, core = (rb >= RING0) & (rb < RING1), rb < CORE_R
-    if ring.sum() < 800 or core.sum() < 300:
-        return None, None
-    lin = _srgb_lin(win.mean(axis=2))
+    rb = np.hypot(xx - rx, yy - ry)
+    ring = (rb >= RING0) & (rb < RING1) & (yy + y0 >= TOP_MASK)
+    core = (rb < CORE_R) & (yy + y0 >= TOP_MASK)
+    if ring.sum() < 500 or core.sum() < 250:
+        return None, None, None
     ay, ax = np.where(ring)
-    A = np.column_stack([np.ones_like(ax), ax - rx, ay - ry, (ax - rx) ** 2,
-                         (ax - rx) * (ay - ry), (ay - ry) ** 2]).astype(np.float64)
-    coef, *_ = np.linalg.lstsq(A, lin[ring], rcond=None)
-    rough = float(np.median(np.abs(lin[ring] - A @ coef)))
     cyy, cxx = np.where(core)
-    Ac = np.column_stack([np.ones_like(cxx), cxx - rx, cyy - ry, (cxx - rx) ** 2,
-                          (cxx - rx) * (cyy - ry), (cyy - ry) ** 2]).astype(np.float64)
-    bg = float(np.median(Ac @ coef))
-    obs = float(np.median(lin[core]))
-    if bg <= 1e-6:
-        return None, None
-    return 100.0 * (1.0 - obs / bg), rough / bg
+    ur, vr = (ax - rx) / 100.0, (ay - ry) / 100.0
+    uc, vc = (cxx - rx) / 100.0, (cyy - ry) / 100.0
+    A = np.column_stack([np.ones_like(ur), ur, vr, ur * ur, ur * vr, vr * vr])
+    Ac = np.column_stack([np.ones_like(uc), uc, vc, uc * uc, uc * vc, vc * vc])
+    pen = RIDGE_QUAD if cy < RING1 + TOP_MASK else (2.0, 2.0, 2.0)
+    R = np.diag([0.0, 0.0, 0.0, pen[0], pen[1], pen[2]])
+
+    def _fit_one(lin):
+        vals = lin[ring]
+        coef = np.linalg.solve(A.T @ A + R, A.T @ vals)
+        res = vals - A @ coef
+        mad = float(np.median(np.abs(res - np.median(res)))) * 1.4826 + 1e-9
+        keep = np.abs(res) < 3.0 * mad
+        if keep.sum() > 250:
+            Ak = A[keep]
+            coef = np.linalg.solve(Ak.T @ Ak + R, Ak.T @ vals[keep])
+            res = vals[keep] - Ak @ coef
+            mad = float(np.median(np.abs(res - np.median(res)))) * 1.4826 + 1e-9
+        bg = float(np.median(Ac @ coef))
+        bg_r = float(np.median(A @ coef))
+        if bg <= 1e-6 or bg_r <= 1e-6:
+            return None, None
+        return 100.0 * (1.0 - float(np.median(lin[core])) / bg), mad / bg_r
+
+    gd, rough = _fit_one(_srgb_lin(win.mean(axis=2)))
+    if gd is None:
+        return None, None, None
+    cdips = []
+    for c in range(3):
+        d, _ = _fit_one(_srgb_lin(win[:, :, c]))
+        cdips.append(0.0 if d is None else d)
+    return gd, cdips, rough
 
 
 def triples():
-    """{stamp: [p_br0, p_br1, ...]} for the last HOURS_BACK hours, complete triples only."""
     cut = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=HOURS_BACK)
     g = collections.defaultdict(list)
     for p in sorted(glob.glob(os.path.join(BR, "*_br*.png"))):
         b = os.path.basename(p)
         try:
-            t = datetime.datetime.strptime(b[:15], "%Y%m%d_%H%M%S").replace(
-                tzinfo=datetime.timezone.utc)
+            t = datetime.datetime.strptime(b[:15], "%Y%m%d_%H%M%S").replace(tzinfo=datetime.timezone.utc)
         except Exception:
             continue
         if t >= cut:
@@ -103,14 +115,17 @@ def main():
     ff = _sandbox()
     import hdrfuse
     prov = os.path.join(SB, "spot_provenance.csv")
+    merge = cv2.createMergeMertens()
 
     tr = triples()
     stamps = sorted(tr)
     if not stamps:
-        print("spot_ab: no complete bracket triples in the last %dh" % HOURS_BACK)
+        print(f"spot_ab: no complete bracket triples in the last {HOURS_BACK}h")
         return 0
-    stamps = stamps[::max(1, len(stamps) // n_want)][:n_want]
-    print("spot_ab: %d triples sampled from %d available" % (len(stamps), len(tr)))
+    if len(stamps) > n_want:
+        idx = np.linspace(0, len(stamps) - 1, n_want, dtype=int)
+        stamps = [stamps[i] for i in idx]
+    print(f"spot_ab: {len(stamps)} triples sampled from {len(tr)} available")
 
     rows = []
     for s in stamps:
@@ -119,65 +134,88 @@ def main():
             continue
         shape = imgs[0].shape
         imgs = [im for im in imgs if im.shape == shape]
-        # --- arm A: uncorrected ---
-        before_fused = hdrfuse.enhance(
-            np.clip(cv2.createMergeMertens().process(imgs) * 255.0, 0, 255).astype(np.uint8))
-        # --- arm B: corrected, exactly as production does it (per raw bracket) ---
-        pre = sum(1 for _ in open(prov)) if os.path.exists(prov) else 0
+        m_bef = np.clip(merge.process(imgs) * 255.0, 0, 255).astype(np.uint8)
+        e_bef = hdrfuse.enhance(m_bef)
+
+        os.environ["SPOT_NOW"] = datetime.datetime.strptime(s, "%Y%m%d_%H%M%S").replace(
+            tzinfo=datetime.timezone.utc).isoformat()
         try:
-            cimgs = [ff._correct(im) for im in imgs]
+            cimgs = ff.correct_set(imgs)
+            # Read arm B's exact provenance row BEFORE arm C appends its row
+            cx = cy = None; locks = 0
+            if os.path.exists(prov):
+                last = list(csv.DictReader(open(prov)))[-1]
+                cx, cy = float(last["cx"]), float(last["cy"])
+                locks = int(last.get("lock") or 0)
+            os.environ["SPOT_NO_LOCK"] = "1"
+            nimgs = ff.correct_set(imgs)
         except Exception as e:
-            print("  %s: correct FAILED (%s)" % (s, e)); continue
-        after_fused = hdrfuse.enhance(
-            np.clip(cv2.createMergeMertens().process(cimgs) * 255.0, 0, 255).astype(np.uint8))
-        # position the corrector itself used (median over the triple's provenance rows)
-        cx = cy = None; locks = 0
-        if os.path.exists(prov):
-            pr = list(csv.DictReader(open(prov)))[pre - 1 if pre else 0:]
-            xs = [float(r["cx"]) for r in pr if r.get("cx")]
-            ys = [float(r["cy"]) for r in pr if r.get("cy")]
-            locks = sum(int(r.get("lock") or 0) for r in pr)
-            if xs and ys:
-                cx, cy = float(np.median(xs)), float(np.median(ys))
+            print(f"  {s}: correct FAILED ({e})")
+            continue
+        finally:
+            os.environ.pop("SPOT_NO_LOCK", None)
+            os.environ.pop("SPOT_NOW", None)
+
         if cx is None:
             continue
-        b, rb_ = dip_pct(before_fused, cx, cy)
-        a, ra_ = dip_pct(after_fused, cx, cy)
-        if b is None or a is None:
+        m_aft = np.clip(merge.process(cimgs) * 255.0, 0, 255).astype(np.uint8)
+        m_nol = np.clip(merge.process(nimgs) * 255.0, 0, 255).astype(np.uint8)
+        e_aft = hdrfuse.enhance(m_aft)
+        e_nol = hdrfuse.enhance(m_nol)
+
+        mb, _, rough = dip_metrics(m_bef, cx, cy)
+        ma, ca, _ = dip_metrics(m_aft, cx, cy)
+        mn, _, _ = dip_metrics(m_nol, cx, cy)
+        eb, _, _ = dip_metrics(e_bef, cx, cy)
+        ea, _, _ = dip_metrics(e_aft, cx, cy)
+        en, _, _ = dip_metrics(e_nol, cx, cy)
+        if None in (mb, ma, mn, eb, ea, en):
             continue
-        lvl = float(np.median(before_fused))
-        rows.append({"stamp": s, "cx": round(cx, 1), "cy": round(cy, 1),
-                     "n_brackets": len(imgs), "locks": locks, "level": round(lvl, 1),
-                     "before": round(b, 3), "after": round(a, 3),
-                     "reduction": round(b - a, 3),
-                     "ring_rough": round(rb_, 4),
-                     "clean": int(rb_ <= CLEAN_TOL)})
-        print("  %s lvl%6.1f  before %+7.3f%%  after %+7.3f%%  locks %d/%d  rough %.3f%s"
-              % (s, lvl, b, a, locks, len(imgs), rb_, "" if rb_ <= CLEAN_TOL else "  (textured)"))
+        lvl = float(np.median(m_bef))
+        clean = int(rough <= CLEAN_TOL)
+        rows.append({
+            "stamp": s, "cx": round(cx, 1), "cy": round(cy, 1), "n_brackets": len(imgs),
+            "locks": locks, "level": round(lvl, 1),
+            "m_before": round(mb, 3), "m_after": round(ma, 3), "m_nolock": round(mn, 3),
+            "after_b": round(ca[0], 3), "after_g": round(ca[1], 3), "after_r": round(ca[2], 3),
+            "before": round(eb, 3), "after": round(ea, 3), "after_nolock": round(en, 3),
+            "reduction": round(mb - ma, 3), "ring_rough": round(rough, 4), "clean": clean,
+        })
+        print(f"  {s} lvl{lvl:5.1f}  Mertens {mb:+6.2f}% -> {ma:+6.2f}% (nl {mn:+6.2f}% BGR[{ca[0]:+.1f},{ca[1]:+.1f},{ca[2]:+.1f}])"
+              f"  Enh {eb:+6.2f}% -> {ea:+6.2f}%  lk={locks} rgh={rough:.3f}{'' if clean else ' (tex)'}")
 
     if not rows:
-        print("spot_ab: no measurable frames"); return 0
+        print("spot_ab: no measurable frames")
+        return 0
+    fields = list(rows[0].keys())
+    if os.path.exists(OUT):
+        with open(OUT) as fh:
+            if fh.readline().strip().split(",") != fields:
+                shutil.move(OUT, OUT.replace(".csv", "_v2.csv"))
     hdr = not os.path.exists(OUT)
-    with open(OUT, "a") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        if hdr: w.writeheader()
+    with open(OUT, "a", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields)
+        if hdr:
+            w.writeheader()
         w.writerows(rows)
 
-    import statistics as st
-    clean = [r for r in rows if r["clean"] and r["level"] >= 60]
-    print("\nwrote %d rows -> %s" % (len(rows), OUT))
-    if clean:
-        b = [r["before"] for r in clean]; a = [r["after"] for r in clean]
-        print("CLEAN DAYLIGHT SUMMARY (n=%d):" % len(clean))
-        print("  display dip before: median %+.3f%%" % st.median(b))
-        print("  display dip after : median %+.3f%%" % st.median(a))
-        print("  reduction         : median %.2fx" % (st.median(b) / max(st.median(a), 1e-6)))
-        print("  frames <= 0.3%% target: %d/%d (%.0f%%)"
-              % (sum(1 for x in a if x <= 0.3), len(a), 100 * sum(1 for x in a if x <= 0.3) / len(a)))
-        worse = sum(1 for r in clean if r["after"] > r["before"])
-        print("  made WORSE: %d/%d (%.1f%%)" % (worse, len(clean), 100 * worse / len(clean)))
+    clean_rows = [r for r in rows if r["clean"] and r["level"] >= 50]
+    print(f"\nwrote {len(rows)} rows -> {OUT}")
+    if clean_rows:
+        mb = [r["m_before"] for r in clean_rows]; ma = [r["m_after"] for r in clean_rows]
+        mn = [r["m_nolock"] for r in clean_rows]
+        eb = [r["before"] for r in clean_rows]; ea = [r["after"] for r in clean_rows]
+        print(f"CLEAN DAYLIGHT SUMMARY (n={len(clean_rows)}):")
+        print(f"  Mertens linear dip : before {st.median(mb):+.2f}% -> after {st.median(ma):+.2f}% "
+              f"(|after| med {st.median([abs(x) for x in ma]):.2f}%, nolock {st.median(mn):+.2f}%)")
+        print(f"  Mertens per-ch BGR : [{st.median([r['after_b'] for r in clean_rows]):+.2f}%, "
+              f"{st.median([r['after_g'] for r in clean_rows]):+.2f}%, "
+              f"{st.median([r['after_r'] for r in clean_rows]):+.2f}%]")
+        print(f"  Enhanced display   : before {st.median(eb):+.2f}% -> after {st.median(ea):+.2f}%")
+        worse = sum(1 for x, y in zip(mb, ma) if abs(y) > abs(x))
+        print(f"  made WORSE (|after|>|before|): {worse}/{len(clean_rows)} ({100*worse/len(clean_rows):.1f}%)")
     else:
-        print("no clean daylight frames in this sample (overcast?) — rows still logged")
+        print("no clean daylight frames in this sample (overcast?) -- rows still logged")
     return 0
 
 

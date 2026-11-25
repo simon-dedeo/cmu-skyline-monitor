@@ -3,13 +3,13 @@
 
   spotlab.py log FRAME ROLE EXP_UNITS GAIN
 
-For the seeded spot + 4 control patches, per channel (B,G,R): disk median/MAD (encoded),
+For the tracked spot + 2 control patches, per channel (B,G,R): disk median/MAD (encoded),
 annulus median/MAD, robust 2D-quadratic background fit evaluated under the disk (encoded +
 sRGB-linearized), dip_enc/dip_lin, clip fractions, annulus-fit residual MAD (uniformity gate,
 recorded not enforced), far-ring median (skirt check; measured on the FULL frame — a 448 crop
 cannot contain a 300 px ring), 10 radial-bin medians (spot patch only), sun elevation and the
-latest aim-drift reading. One CSV row per patch × channel; 448×448 lossless crops of every
-patch for reproducible refits. Fail-soft: any error exits 0 silently (never breaks the tick).
+latest aim-drift reading. One CSV row per patch × channel; a 448×448 lossless crop of the
+spot patch for reproducible refits. Fail-soft: any error exits 0 silently (never breaks the tick).
 """
 import cv2, numpy as np, os, sys, csv, datetime, glob
 
@@ -18,9 +18,30 @@ sys.path.insert(0, HERE)
 LAB = os.path.join(HERE, "spot_lab")
 CSVP = os.path.join(LAB, "spot_photometry.csv")
 LINZ = "srgb_v0"                     # linearization version (day-1 hypothesis: inverse sRGB)
-# patch registry: the seeded spot + 4 controls in the same row band (SPOT.md §2.3)
-PATCHES = [("spot", 1163, 187), ("c1", 1900, 187), ("c2", 2400, 187),
-           ("c3", 2900, 187), ("c4", 3400, 187)]
+# patch registry: the TRACKED spot + 4 fixed controls (SPOT.md §2.3). The spot centre
+# comes from spot_model.json (spotnight-published, velocity-extrapolated per tick) --
+# the original hardcoded (1163,187) is ~140 px off the blemish by 2026-07-28, so the
+# 'spot' photometry had been measuring nearly clean sky.
+def _spot_centre():
+    try:
+        m = __import__("json").load(open(os.path.join(HERE, "spot_model.json")))
+        s0 = m["spots"][0]
+        cx, cy = float(s0["fx"]) * 3840, float(s0["fy"]) * 2160
+        vel, fe = m.get("velocity"), m.get("fit_epoch")
+        if vel and fe:
+            dt = (datetime.datetime.now(datetime.timezone.utc)
+                  - datetime.datetime.fromisoformat(fe)).total_seconds() / 86400.0
+            dt = min(max(dt, -0.5), 3.5)
+            cx, cy = cx + float(vel[0]) * dt, cy + float(vel[1]) * dt
+        if 200 < cx < 3600 and 40 < cy < 900:
+            return int(round(cx)), int(round(cy))
+    except Exception:
+        pass
+    return 1163, 187
+
+
+_SCX, _SCY = _spot_centre()
+PATCHES = [("spot", _SCX, _SCY), ("c1", 1900, 187), ("c3", 2900, 187)]   # 2 controls since 2026-11-05
 R_DISK, R_ANN0, R_ANN1 = 60, 110, 160
 R_FAR0, R_FAR1 = 220, 300
 TOP_MASK = 20                        # exclude top image rows (lens shading / ISP edge zone)
@@ -114,6 +135,8 @@ def main():
                     m = (rr >= i * 15) & (rr < (i + 1) * 15) & valid
                     row[f"r{i}"] = round(float(np.median(C[m])), 2) if m.any() else ""
             rows.append(row)
+        if name != "spot":          # control crops had no consumer
+            continue
         # 448 crop (contains disk + annulus; far ring comes from the full frame above)
         y0 = max(0, cy - CROP // 2); x0 = max(0, cx - CROP // 2)
         crop = img[y0:y0 + CROP, x0:x0 + CROP]
