@@ -34,31 +34,18 @@ Data, analysis code, and LaTeX source:
 \begin{abstract}
 \noindent
 At 00:11~EDT on 9 August 2026, a fixed-exposure skyline camera in Pittsburgh
-recorded a single frame in which an overcast midnight sky turned pale lavender:
-top-band mean $(R,G,B)=(172,170,223)$ against neighboring sodium-amber baselines
-of $(22,19,7)$ before and $(9,8,4)$ after. We treat this frame as a
-radiometric and colorimetric closure test: can the measured color be predicted
-from the physics of lightning emission propagated through cloud, air, and the
-camera's imaging pipeline? Direct 4K frame analysis using the camera's
-empirically calibrated per-channel response function removes
-brightness-dependent $R/G$ drift, isolates blue-channel highlight roll-off
-above DN~220, and confirms rolling-shutter uniformity across the full frame.
-Validating the color pipeline against 769 daytime sky frames from the same
-locked-5600~K archive shows that a color-corrected sRGB pipeline (Bayer plus a
-$3\times 3$ color-correction matrix, or CIE-sRGB) reproduces both clear blue
-and overcast skies, whereas un-matrixed Bayer sensitivities do not. Passing a
-three-component spectral model---continuum, N\,\textsc{ii} and hydrogen Balmer
-lines, and \Ntp{} first-negative bands---through this validated pipeline yields
-three physical constraints: (i)~an optically thin, cooling Kramers continuum
-(and/or longer atmospheric path reddening) is strongly favored over an
-optically thick 30\,000~K Planck continuum, which renders too blue
-($B/G=2.10$); (ii)~strong H$\alpha$ (656.3~nm) emission from dissociated water
-vapor is strictly required to lift $R/G>1$; and (iii)~molecular \Ntp{}
-emission is bounded to $0$--$14\%$ of visible energy---e.g.\
-$(w_c,w_a,w_m)=(0.57,0.38,0.05)$ in CIE-sRGB at 5600~K---consistent with
-high-speed return-stroke spectroscopy. We close by connecting the nitrogen
-emission to lightning's abiotic fixation pathways and examining the metameric
-color theory of a pale violet no eye witnessed.
+recorded a single 100~ms frame in which an overcast midnight sky turned pale
+lavender: $(R,G,B)=(172,170,223)$ against a sodium-amber baseline of
+$(22,19,7)$. Treating this capture as a colorimetric closure test, we
+propagate a three-component lightning spectrum---continuum, N\,\textsc{ii}
+and hydrogen Balmer lines, and \Ntp{} first-negative bands---through cloud,
+air, and an archive-validated daylight-balanced camera model. Three physical
+constraints follow: an optically thin Kramers continuum is strongly favored
+over a 30\,000~K blackbody; H$\alpha$ (656.3~nm) from dissociated water vapor
+is strictly required to lift $R/G>1$; and molecular \Ntp{} is bounded to
+$0$--$14\%$ of visible energy, consistent with return-stroke spectroscopy.
+We connect this nitrogen spectrum to lightning's abiotic fixation pathways
+and close with the metameric color theory of a pale violet no eye witnessed.
 \end{abstract}
 
 \begin{figure}[ht]
