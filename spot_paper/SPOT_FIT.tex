@@ -26,10 +26,10 @@
 \title{\bfseries Pittsburgh in a Grain of Sand\\[0.4em]
   \large\mdseries Lessons for Mars rovers and autonomous self-driving cars}
 \author{CMU Skyline Monitor --- \code{pandr} / \code{akdeniz}\thanks{Operated by
-Simon DeDeo (Carnegie Mellon University). Analysis, code, and manuscript revisions
+Simon DeDeo (Carnegie Mellon University). Analysis, code, and manuscript
 developed with AI assistance (Claude, Anthropic; Gemini, Google); the human operator is
 responsible for all claims, citations and errors.}}
-\date{2026-11-24 (v12)}
+\date{2026-11-24}
 
 \begin{document}
 \maketitle
@@ -42,14 +42,14 @@ prints a flat-topped \SI{101}{px} shadow whose off-axis ellipticity ($1.095$, or
 within \ang{9} of radial) matches rectilinear $\sec\theta = 1.12$ projection. Over
 125~days (73~accepted nightly fixes), the shadow traced a straight \SI{310}{px} path
 following Andrade's $t^{1/3}$ viscoelastic creep law ($\alpha = 0.34$, $R^2 = 0.989$),
-turning an optical nuisance into a sub-millimetre mount strain gauge. Calibrating the
-camera's empirical response function from exposure brackets eliminates a previously
-puzzling dark offset and reveals $>12\sigma$ direct-sun forward scattering in red
-($k_{\mathrm{fac}} = +0.0072$) atop achromatic blocking ($t \approx 0.952$) ---
-revising an earlier v11 extinction-paradox interpretation. A live Bayesian Stan~M2
-pipeline and conjugate MAP corrector reduce clean-sky linear dip from
-\SI{+4.15}{\percent} to \SI{-0.12}{\percent} across RGB (prospective audit over
-\num{2450}+ daylight triples; live at
+turning an optical nuisance into a passive sub-millimetre mount strain gauge.
+Calibrating the camera's empirical response function directly from exposure brackets
+recovers linear radiance without laboratory equipment and reveals $>12\sigma$
+direct-sun forward scattering in red ($k_{\mathrm{fac}} = +0.0072$) atop achromatic
+geometric blocking ($t \approx 0.952$). A closed-loop Bayesian Stan~M2 pipeline and
+conjugate MAP flat-field corrector reduce clean-sky linear dip from
+\SI{+4.15}{\percent} to \SI{-0.12}{\percent} across RGB (evaluated against a 95-day,
+\num{2450}+ triple prospective audit; live at
 \href{https://proofsandreasons.io}{proofsandreasons.io}), motivating physics-first
 handling of soiled robotic cameras. Code and data are public at
 \href{https://github.com/simon-dedeo/pittsburgh-in-a-grain-of-sand}{github.com/simon-dedeo/pittsburgh-in-a-grain-of-sand}.
@@ -83,48 +83,34 @@ The camera (Elgato Facecam~4K) uses an $f/4.0$ fixed-focus lens --- \SI{21}{mm}
 full-frame equivalent (\ang{90} nominal diagonal field of view) on a 1/1.8'' Sony
 STARVIS~2 sensor (diagonal $\approx\SI{8.93}{mm}$, actual focal length
 $f \approx \SI{4.33}{mm}$, entrance pupil $a = f/4 \approx \SI{1.08}{mm}$), focus range
-\SIrange{30}{120}{cm} --- mounted close to the pane on 2026-07-17. These numbers govern
-every physical inference below (\S\ref{sec:physics}). By 2026-11-24, after four months
-of monotonic mount creep from $(1189, 172)$ in July, the shadow sits at
-$\sim(1481, 68)$ --- only \SI{68}{px} below the top edge of the sensor, an extreme
-edge-clamped geometry that broke several naive assumptions of the initial July design.
+\SIrange{30}{120}{cm} --- mounted close to the window pane on 2026-07-17. These
+parameters govern every optical inference below (\S\ref{sec:physics}). Over four months
+of continuous operation (July--November~2026), monotonic mount settling carried the
+shadow from $(1189, 172)$ to $\sim(1481, 68)$, placing the centre only \SI{68}{px}
+below the top edge of the sensor and demanding an edge-safe formulation for both
+background estimation and real-time tracking.
 
-\paragraph{What changed in v12 (and what is deployed).}
-Version~11 (2026-07-28) reported eight days of initial operation. Four months of
-continuous unattended operation (July--November~2026) and a November~2026 audit exposed
-both real production failure modes (winter blue-channel clipping, an integer truncation
-bug in \code{flatfield.py}, top-edge quadratic blow-up, and CLAHE tile-seam measurement
-bias) and physical errors in v11's optical interpretation (notably applying collimated
-plane-wave extinction-paradox arguments to a diffuse extended sky, conflating a
-Gaussian fit's width with the flat-topped pupil shadow's true FWHM, and attributing
-monotonic mount creep to reversible thermal breathing). This revision corrects those
-errors, integrates the full 125-day dataset, and documents the simplified \code{bayes3}
-architecture now deployed on \code{akdeniz} and \code{pandr}. Byte-copies of the live
-files live under \code{production/}; offline validation code from July remains in
-\code{spot\_paper/code/}.
-
-\section{Radiometric and Bayesian statistical model}
+\section{Radiometric calibration and Bayesian scattering inference}
 \label{sec:inference}
 
 \subsection{Empirical camera response function (CRF)}
 \label{sec:crf}
 
-An optical transmittance model holds in \emph{linear radiance}, not encoded 8-bit
-display values. Earlier versions of the pipeline (v1--v11) linearized pixels with an
-assumed inverse-sRGB curve ($\gamma = 2.4$), and then compensated for bracket-to-bracket
-depth discrepancies with an ad-hoc 5-knot empirical depth-scaling curve
-(\code{scurve}).
+Physical optical attenuation and scattering hold in \emph{linear radiance}, not encoded
+8-bit display values. Consumer camera ISPs apply proprietary tone curves that depart
+substantially from the nominal inverse-sRGB power law ($\gamma = 2.4$); applying a
+nominal sRGB transform without calibration systematically distorts contrast across
+brightness regimes and induces spurious additive offsets in photometric regressions.
 
-With known UVC manual exposure times $(E_0, E_1, E_2)$ at zero gain across every
-5-minute bracket triple, the camera's actual response curve can be measured directly
-without laboratory equipment. For any unclipped pair $(L_0, L_1)$ viewing the same sky
-within 1.5~s, the local log-slope is $\gamma_{\mathrm{eff}} = \ln(E_1/E_0)/\ln(L_1/L_0)$.
-Across \num{2978} clean bracket pairs in November~2026 (Figure~\ref{fig:crf}a), the
-Facecam~4K ISP departs strongly from inverse-sRGB: $\gamma_{\mathrm{eff}}$ rises
-smoothly from $\sim 1.5$--$1.6$ at $L \in [40, 80]$ to $\sim 2.2$--$2.3$ at
-$L \in [160, 200]$. Assuming $\gamma = 2.4$ everywhere overstates linear contrast in
-darker channels by $\sim 1.5\times$ and generates a spurious negative additive offset
-in photometric regressions.
+Because the camera records known UVC manual exposure times $(E_0, E_1, E_2)$ at zero
+gain in every 5-minute bracket triple, its true response curve can be measured directly
+from sky frames without laboratory equipment. For any unclipped pair $(L_0, L_1)$
+viewing the same patch of sky within \SI{1.5}{s}, the local log-slope is
+$\gamma_{\mathrm{eff}} = \ln(E_1/E_0)/\ln(L_1/L_0)$. Across \num{2978} clean bracket
+pairs in November~2026 (Figure~\ref{fig:crf}a), $\gamma_{\mathrm{eff}}$ rises smoothly
+from $\sim 1.5$--$1.6$ at $L \in [40, 80]$ to $\sim 2.2$--$2.3$ at $L \in [160, 200]$.
+Assuming $\gamma = 2.4$ everywhere therefore overstates linear contrast in darker
+channels by $\sim 1.5\times$.
 
 We model each channel's forward response $v \in [0, 255] \mapsto I(v) \in [0, 1]$ with a
 two-parameter toe-power law normalized to $I(0)=0$, $I(1)=1$:
@@ -134,31 +120,37 @@ two-parameter toe-power law normalized to $I(0)=0$, $I(1)=1$:
   \label{eq:crf}
 \end{equation}
 fitted nightly on \code{akdeniz} by Huber-robust minimization of
-$\ln\bigl[(I_c(L_1)/I_c(L_0)) / (E_1/E_0)\bigr]$ over clean bracket pairs from the last
-14~days. On November~2026 data, this simple two-parameter CRF cuts median
-exposure-ratio error roughly $3\times$ in blue (\SI{4.46}{\percent} $\to$
-\SI{1.74}{\percent}, $a_B = 0.678$, $\gamma_B = 4.19$) and green (\SI{5.39}{\percent}
-$\to$ \SI{2.33}{\percent}, $a_G = 0.462$, $\gamma_G = 3.90$), and from
-\SI{13.98}{\percent} to \SI{8.50}{\percent} in red ($a_R = 0.420$, $\gamma_R = 3.39$;
-the residual red spread reflects the ISP's colour-correction matrix on saturated blue
-sky). Linearizing with Eq.~\eqref{eq:crf} renders the blue and green dip essentially
-exposure-invariant across $L \in [20, 248]$ and retires the legacy \code{scurve}
-entirely.
+$\ln\bigl[(I_c(L_1)/I_c(L_0)) / (E_1/E_0)\bigr]$ over clean bracket pairs from the
+trailing 14~days. On November~2026 data, Eq.~\eqref{eq:crf} reduces median
+exposure-ratio error roughly $3\times$ relative to inverse-sRGB in blue
+(\SI{4.46}{\percent} $\to$ \SI{1.74}{\percent}, $a_B = 0.678$, $\gamma_B = 4.19$) and
+green (\SI{5.39}{\percent} $\to$ \SI{2.33}{\percent}, $a_G = 0.462$, $\gamma_G = 3.90$),
+and from \SI{13.98}{\percent} to \SI{8.50}{\percent} in red ($a_R = 0.420$,
+$\gamma_R = 3.39$; the residual red spread reflects the ISP's colour-correction matrix
+on saturated blue sky). Linearizing with Eq.~\eqref{eq:crf} renders blue and green
+shadow depth essentially exposure-invariant across $L \in [20, 248]$ without empirical
+depth-warping curves.
 
-\subsection{Bayesian Stan M2 scattering model (deployed nightly)}
+\subsection{Bayesian Stan M2 scattering model}
 \label{sec:bayes}
 
 In linear radiance per channel $c \in \{B, G, R\}$, a defocused window contaminant both
 attenuates background sky radiance $\Lbg$ and scatters ambient window illumination
-$E_{\mathrm{win}}$ toward the sensor \citep{gu2009dirty}:
+toward the sensor \citep{gu2009dirty}:
 \begin{equation}
   \Lsp = t_c\,\Lbg + k_{\mathrm{fac},c}\,\Lfac + s_{0,c},
   \label{eq:m2}
 \end{equation}
-where we proxy direct-sun and courtyard illumination on the glass by the simultaneous
+where direct-sun and courtyard illumination on the glass is proxied by the simultaneous
 CRF-linearized radiance $\Lfac$ of a fixed $100\times 100$ patch on the sunlit
-courtyard building facade (\code{spotlab.py}). Dividing by $\Lbg$ yields a dimensionless
-effective transmittance $y_n = \Lsp/\Lbg$ with clean HMC geometry:
+courtyard building facade (\code{spotlab.py}). When an unconstrained constant offset
+$s_{0,c}$ is included under empirical CRF linearization, posterior estimates collapse
+statistically to zero in all three channels (G: $+0.0013\,[-0.0089, +0.0108]$;
+R: $+0.0004\,[-0.0101, +0.0116]$; B: $-0.0102\,[-0.0251, +0.0057]$), confirming pure
+multiplicative attenuation plus additive illumination-driven scattering.
+
+Setting $s_{0,c} = 0$ and dividing by $\Lbg$ yields a dimensionless effective
+transmittance $y_n = \Lsp/\Lbg$ with well-conditioned HMC geometry:
 \begin{equation}
   y_n \;\sim\; \operatorname{Student-}t\!\left(\nu_{c(n)},\;
     t_{c(n)} + k_{\mathrm{fac},c(n)}\,\frac{L_{\mathrm{fac},n}}{L_{\mathrm{bg},n}},\;
@@ -167,42 +159,31 @@ effective transmittance $y_n = \Lsp/\Lbg$ with clean HMC geometry:
 \end{equation}
 with weakly informative priors $1 - t_c \sim \mathrm{LogNormal}(\ln 0.05, 0.5)$,
 $k_{\mathrm{fac},c} \sim \mathcal{N}(0, 0.02)$,
-$\nu_c \sim \mathrm{Gamma}(2, 0.15)$ bounded to $[2, 50]$ (preventing infinite-$\nu$
-HMC rejections observed in the legacy script), and
+$\nu_c \sim \mathrm{Gamma}(2, 0.15)$ bounded to $[2, 50]$, and
 $\sigma_{x,c} \sim \mathcal{N}_+(0, 0.015)$ bounded below at $10^{-4}$ (the 8-bit
-quantization floor). The Student-$t$ likelihood guards against residual cloud edges
-\citep{lange1989robust}.
+quantization floor). The Student-$t$ likelihood provides automatic robustness against
+residual cloud edges \citep{lange1989robust}.
 
-In v11, Stan sampling ran on \code{pandr} (\code{spotfit.R}) as a disconnected record
-under inverse-sRGB and found a troubling \emph{negative} constant offset $s_0 < 0$ in
-all channels, which v11 carefully hedged as likely response-curve-confounded. Fitting
-Eq.~\eqref{eq:m2} with $s_0$ included under our empirical CRF \textbf{vindicates that
-hedge}: $s_{0,c}$ collapses statistically to zero in all three channels
-(G: $+0.0013\,[-0.0089, +0.0108]$; R: $+0.0004\,[-0.0101, +0.0116]$;
-B: $-0.0102\,[-0.0251, +0.0057]$), and is therefore dropped from the production model
-Eq.~\eqref{eq:stan}.
-
-Equation~\eqref{eq:stan} now runs nightly on \code{akdeniz} via \code{cmdstanpy}
+Equation~\eqref{eq:stan} is sampled nightly on \code{akdeniz} via \code{cmdstanpy}
 \citep{carpenter2017stan} (4 parallel NUTS chains, \code{adapt\_delta=0.95},
-$N \le 2000$--$3000$ clean observations from the trailing 7~days, $\sim$\SI{45}{s}).
-Table~\ref{tab:stan} and Figure~\ref{fig:crf}b report the 2026-11-24 production
-posterior ($N = 2921$, zero divergences, $\hat{R}_{\max} = 1.0055$, all diagnostics
-passed):
+$N \le 3000$ clean observations from the trailing 7~days, $\sim$\SI{45}{s}).
+Table~\ref{tab:stan} and Figure~\ref{fig:crf}b report the 2026-11-24 posterior
+($N = 2921$, zero divergences, $\hat{R}_{\max} = 1.0055$):
 \begin{enumerate}
 \item \textbf{Pure optical transmittance is achromatic:} $t_B = 0.9525$,
   $t_G = 0.9526$, $t_R = 0.9474$ (area-averaged over the $r < \SI{60}{px}$ photometry
   disk; $B$ and $G$ agree to \SI{0.01}{\percent}).
 \item \textbf{Direct-sun forward scattering is detected at $>12\sigma$ in red:}
   $k_{\mathrm{fac},R} = +0.00724$ (90\% CI $[+0.00665, +0.00783]$; green $+0.00352$,
-  blue $+0.00415$). When direct sunlight strikes the glass and facade against a dark
+  blue $+0.00415$). When direct sunlight strikes the glass and facade against the dark
   red component of clear blue sky ($\Lfac/\Lbg \approx 3$--$4$), warm forward-scattered
   light partially refills the red shadow by $\sim\SIrange{2}{3}{\percent}$; on overcast
   or low-sun frames ($\Lfac/\Lbg \lesssim 0.3$), the scatter vanishes and the full
   optical dip appears.
-\item \textbf{Unexplained scatter collapses $6\times$:} $\sigma_{x}$ falls from
-  $0.5$--\SI{0.7}{\percent} under inverse-sRGB to \SI{0.07}{\percent} (B) and
-  \SI{0.06}{\percent} (G), and $\nu$ rises from $\sim 3$ (heavy-tailed
-  misspecification) to $13$--$32$ (near-Gaussian).
+\item \textbf{Residuals are near-Gaussian and sub-0.1\%:} unexplained scatter
+  $\sigma_{x}$ is just \SI{0.07}{\percent} (B) and \SI{0.06}{\percent} (G) with
+  $\nu \in [13.5, 31.5]$ (compared to $\sigma_x \approx 0.5$--\SI{0.7}{\percent} and
+  $\nu \approx 3$ under nominal inverse-sRGB linearization).
 \end{enumerate}
 
 \begin{table}[ht]
@@ -236,81 +217,67 @@ empirical transmittance map.}
   \label{fig:crf}
 \end{figure}
 
-\subsection{Position tracking, offline spatial validation, and honest epochs}
+\subsection{Position tracking, spatial validation, and epoch bookkeeping}
 \label{sec:filter}
 
-Two spatial position estimators exist. The \emph{production} nightly estimator
-(\code{spotnight.py} on \code{akdeniz}) is deliberately fast and nonparametric: it
-selects bright-then-flat frames from each bracket class (\code{br0}, \code{br1},
-\code{br2}) over an adaptive 2-to-4-day window (widening automatically during overcast
-spells), masks the top 20~ISP edge rows (\code{TOP\_MASK = 20}), divides each frame by
-a sigma-clipped ridge-regularized background fit, normalizes each bracket's median dip
-by its own peak (pinning position across brackets, which cut per-bracket disagreement
-from $\sim\SI{60}{px}$ to $\sim\SIrange{2}{6}{px}$), and takes a half-depth centroid.
-A recursive filter \citep{kalman1960,sarkka2023filtering} propagates last night's state
+The nightly position estimator (\code{spotnight.py} on \code{akdeniz}) is fast and
+nonparametric: it selects bright, flat-ring frames from each bracket class (\code{br0},
+\code{br1}, \code{br2}) over an adaptive 2-to-4-day window (widening automatically
+during overcast spells), masks the top 20~ISP edge rows (\code{TOP\_MASK = 20}),
+divides each frame by a sigma-clipped ridge-regularized background fit, normalizes each
+bracket's median dip by its own peak (reducing per-bracket position spread from
+$\sim\SI{60}{px}$ to $\sim\SIrange{2}{6}{px}$), and computes a half-depth centroid.
+A recursive filter \citep{kalman1960,sarkka2023filtering} propagates state forward
 using a linear velocity fitted across the trailing 10 accepted nights (suppressing
-one-night differencing noise once velocity fell below \SI{1}{px/day}), rejecting steps
+single-night differencing noise once speed falls below \SI{1}{px/day}), rejecting steps
 $> \SI{45}{px}$ or bracket spreads $> \SI{18}{px}$ in favour of carry-forward.
 
-In July, this cheap estimator was independently validated offline against a
-hierarchical pixelwise Student-$t$ elliptical-blob model fitted in CmdStan via
-multi-start L-BFGS \citep{liu1989lbfgs,papaspiliopoulos2007parametrization,betancourt2015hmc,gelman2020workflow}
-(\code{spot\_paper/code/spothier.stan}), with positions linked across days by a
-non-centred random walk and amplitude free per exposure bracket. The two estimators
-agreed to $\sim\SI{3}{px}$ along the entire 8-day July track while sharing no machinery.
+This estimator was independently cross-checked offline against a hierarchical pixelwise
+Student-$t$ elliptical-blob model fitted in CmdStan via multi-start L-BFGS
+\citep{liu1989lbfgs,papaspiliopoulos2007parametrization,betancourt2015hmc,gelman2020workflow}
+(\code{offline\_july/\allowbreak spothier.stan}), with positions linked across days by a
+non-centred random walk and free per-bracket amplitudes. The two estimators agreed to
+$\sim\SI{3}{px}$ across an 8-day track while sharing no code or likelihood machinery.
 
-One bookkeeping discipline remains foundational: \textbf{every estimate carries its
-data's mean epoch, never its run date}. Because the tracker stacks frames from the
-preceding 2--4~days, its effective epoch trails the run by $\sim 1.5$~days; velocity is
-computed against elapsed epoch time (px/day), and the publisher stamps \code{fit\_epoch}
-into the bundle so downstream extrapolation cannot drift by $v\,\Delta t$ and print a
-bright/dark dipole.
+A strict bookkeeping rule prevents systematic lag: \textbf{every position estimate
+carries the mean timestamp of its constituent frames (\code{fit\_epoch}), never the
+wall-clock run date}. Because a 2--4~day stack's effective epoch trails the run time by
+$\sim 1.5$~days, computing velocity and downstream extrapolation against elapsed epoch
+time eliminates $v\,\Delta t$ placement lag and its characteristic bright/dark dipole.
 
 \section{The multi-bracket empirical transmittance map}
 \label{sec:map}
 
-The shadow's radial profile is distinctly flat-topped with compact support, falling far
-faster than a Gaussian (Figure~\ref{fig:profile}a). The spatial centroid therefore only
-\emph{locates}; correction shape comes from a registered per-channel empirical
+The shadow's radial profile is flat-topped with compact support, falling far more
+steeply than a Gaussian (Figure~\ref{fig:profile}a). The spatial centroid therefore
+only \emph{locates}; correction shape comes from a registered per-channel empirical
 transmittance map \citep{howell2006handbook},
 \begin{equation}
   T_c(\mathbf{r}) \;=\; \operatorname{median}_j\,
      \frac{I_{j,c}(\mathbf{r})}{B_{j,c}(\mathbf{r})},
 \end{equation}
-stacked in CRF linear radiance with velocity registration (each frame's window shifted
+stacked in CRF linear radiance with velocity registration (shifting each frame's window
 to its interpolated centre so motion never smears the stack) and light Gaussian
-denoising ($\sigma = \SI{1.5}{px}$).
-
-Four months of operation forced three structural upgrades over v11:
+denoising ($\sigma = \SI{1.5}{px}$). Three design choices keep $T_c$ accurate across
+seasons and edge-clamped geometries:
 \begin{itemize}
-\item \textbf{Multi-bracket stacking (retiring fixed-exposure \code{ref} stacks).}
-  Through November~2026, \code{publish\_live.py} stacked only fixed-exposure reference
-  frames (\code{flatfield\_acc/}). In late-November winter daylight, $\sim\SI{70}{\percent}$
-  of 24~h is dark and $\sim\SI{26}{\percent}$ of clear midday reference frames saturate
-  the blue channel ($L > 249$), compounded by a subsampling bug
-  (\code{fs[::max(1, len(fs)//400)][:400]} silently dropped the newest 337 frames when
-  $n = 737$). On 2026-11-24 the legacy publisher failed outright (\code{only 13 usable
-  frames/channel}) and previously baked a shallow midday-biased red map
-  (\SI{3.25}{\percent} core vs.\ \SIrange{5}{9}{\percent} on overcast/morning frames).
-  Stacking clean, unclipped frames across \emph{all three exposure brackets}
-  (\code{br0/br1/br2}, where \code{br0} stays unclipped in clear blue sky and
-  \code{br1/br2} stay bright under overcast), uniformly sampled across an adaptive
-  3-to-6-day window with an encoded-DN flatness gate ($\mathrm{MAD} < 2.5$~DN), raised
-  clean counts on the very same day from 13 to $[81, 98, 68]$ frames per channel in
-  \SI{4}{s} on 8 threads.
+\item \textbf{Multi-bracket stacking.} Stacking only a single fixed exposure fails
+  seasonally: in clear midday sky the blue channel saturates ($L > 249$), while under
+  winter overcast shorter exposures become too dark. Pooling clean, unclipped frames
+  across \emph{all three exposure brackets} (\code{br0/br1/br2}), uniformly sampled
+  over an adaptive 3-to-6-day window with an encoded-DN flatness gate
+  ($\mathrm{MAD} < 2.5$~DN), yields $[81, 98, 68]$ clean frames per channel in \SI{4}{s}
+  on 8 threads without midday illumination bias.
 \item \textbf{Top-edge ridge regularization and \code{TOP\_MASK = 20}.} At $y \approx 68$,
-  the entire upper half of the legacy $r \in [105, 130]$~px annulus lies off the sensor.
-  Fitting an unregularized 2D quadratic to a one-sided bottom arc makes the $y^2$ term
-  ill-conditioned, wildly extrapolating cloud edges up to $y = 68$ (even producing
-  apparent negative dips when the core was 19~DN darker than the ring). Tightening the
-  ring to $r \in [85, 115]$~px (where Figure~\ref{fig:profile}a shows deficit is already
-  $< \SI{0.06}{\percent}$), masking $y < 20$, and adding a ridge penalty
-  $\mathrm{diag}(0, 0, 0, 50, 50, 200)$ on the quadratic terms whenever $y < r_1 + 20$
-  completely stabilizes edge extrapolation.
-\item \textbf{Clean-sky selection independent of dip.} Confirming the lucky-imaging
-  selection-bias caveat \citep{law2006lucky,smith2009lucky}, selecting on ring
-  flatness and unclipped brightness outside the blemish avoids cloud contamination
-  without conditioning on the core.
+  the upper half of an outer sky annulus lies off the sensor, making an unregularized
+  2D quadratic background fit ill-conditioned in $y^2$ and prone to extrapolating cloud
+  edges into the core. Tightening the background annulus to $r \in [85, 115]$~px (where
+  Figure~\ref{fig:profile}a shows optical deficit is already $< \SI{0.06}{\percent}$),
+  masking $y < 20$, and applying a ridge penalty $\mathrm{diag}(0, 0, 0, 50, 50, 200)$
+  to the quadratic terms whenever $y < r_1 + 20$ stabilizes edge extrapolation cleanly.
+\item \textbf{Core-independent sky selection.} Following lucky-imaging selection-bias
+  principles \citep{law2006lucky,smith2009lucky}, frames are gated strictly on ring
+  flatness and unclipped brightness outside the footprint, never on core depth.
 \end{itemize}
 
 \begin{figure}[t]
@@ -319,7 +286,7 @@ Four months of operation forced three structural upgrades over v11:
   \caption{Empirical transmittance map (2026-11-24, CRF-linearized, $n=[81, 98, 68]$).
   (a)~Radial profile $1 - T(r)$ showing the flat-topped core ($r < \SI{40}{px}$), sharp
   half-maximum knee at $r_{1/2} \approx \SI{50}{px}$ ($\mathrm{FWHM} \approx \SI{101}{px}$),
-  clean zero by $r = \SI{75}{px}$, and why a Gaussian fit understates $r_{1/2}$.
+  clean zero by $r = \SI{75}{px}$, and comparison with a Gaussian fit.
   (b)~2D green deficit map (white contour at half-depth) showing the measured axis ratio
   $1.095$ elongated within \ang{8.7} of the cyan vector to the optical axis
   (rectilinear prediction $\sec\theta = 1.118$).}
@@ -335,13 +302,11 @@ brackets in CRF linear radiance before Mertens fusion:
 \paragraph{1. Placement (prediction + symmetric lock).}
 The bundle's published position is extrapolated from \code{fit\_epoch} by velocity
 (clamped to $[-0.5, 3.5]$~days and $\le \SI{40}{px}$). On daylight HDR calls
-(median $> 30$~DN), a single template lock \citep{lewis1995ncc} runs on the brightest
-unclipped bracket using a \emph{symmetric} vertical search bound
-$r_y = \min(25, \max(0, y - 48))$ so top-edge clamping at $y = 68$ never introduces a
-one-sided downward bias; decisive locks ($\mathrm{NCC} \ge 0.50$, rival-peak margin
-$\ge 0.08$) are smoothed over a trailing 1-hour window. Single-frame auxiliary calls
-(\code{sky\_ref}, \code{science.py}) apply the correction without writing duplicate
-lock or provenance entries.
+(median $> 30$~DN), a single normalized cross-correlation template lock
+\citep{lewis1995ncc} runs on the brightest unclipped bracket using a \emph{symmetric}
+vertical search bound $r_y = \min(25, \max(0, y - 48))$ so top-edge proximity never
+biases the search downward; decisive locks ($\mathrm{NCC} \ge 0.50$, rival-peak margin
+$\ge 0.08$) are smoothed over a trailing 1-hour window.
 
 \paragraph{2. Conjugate Bayesian MAP depth across brackets.}
 From the placed map $T_c$, we extract the normalized 2D spatial shape
@@ -349,71 +314,62 @@ $p_c(\mathbf{r}) = \mathrm{clip}(1 - T_c(\mathbf{r}), 0, 0.25)\,w(\mathbf{r}) / 
 (feathered smoothly to zero outside $r = \SI{82}{px}$ and normalized so
 $\mathrm{median}_{\mathrm{core}}(p_c) = 1$). Because the blemish's optical shape
 $p_c$ is fixed while its effective depth $d_c$ varies with sunlight scattering
-(Eq.~\eqref{eq:stan}), each channel $c$ is solved in closed form:
+(Eq.~\eqref{eq:stan}), each channel $c$ admits a closed-form conjugate MAP estimate:
 \begin{itemize}
 \item \textbf{Physical prior from Stan~M2:} reading the sunlit facade patch $\Lfac$ on
   the current frame gives
   $d_{\mathrm{prior},c} = s_{\mathrm{core},c}\bigl((1 - t_c) - k_{\mathrm{fac},c}\,\Lfac/\Lbg\bigr)$,
   with prior variance $\tau_c^2 = \max(3\,s_{\mathrm{core},c}\,\sigma_{x,c},\; 0.022)^2$.
-  Even under solid cloud, the prior already accounts for direct-sun scattering.
+  Even under heavy cloud texture, the prior already predicts the direct-sun scatter
+  contribution.
 \item \textbf{Matched-filter likelihood across unclipped brackets:} on every unclipped
   bracket $i$ with ring roughness $\rho_i = \mathrm{MAD}_i/\mathrm{median}(B_i) < 0.08$,
   the optimal linear projection of the observed deficit onto $p_c$ is
   $\hat d_{i,c} = \langle p_c, 1 - I_{i,c}/B_{i,c}\rangle / \langle p_c, p_c\rangle$,
   with variance $\sigma_{i,c}^2 = (0.40\,\rho_i)^2 + 0.003^2$.
 \item \textbf{Conjugate posterior and clipped-bracket inheritance:} pooling across
-  unclipped brackets yields
+  unclipped brackets gives
   $d_{\mathrm{pool},c} = \bigl(d_{\mathrm{prior},c}/\tau_c^2 + \sum_i \hat d_{i,c}/\sigma_{i,c}^2\bigr) / \bigl(1/\tau_c^2 + \sum_i 1/\sigma_{i,c}^2\bigr)$,
-  clamped safely to $[-0.015, 0.14]$ (allowing slight bright-scatter fill-in without
-  runaway gain; applied transmittance clamped to $[0.84, 1.02]$). Crucially,
-  \emph{partially clipped brackets} (e.g.\ \code{br1} where clean sky clips at 255 while
-  the darkened core sits at 241) inherit $d_{\mathrm{pool},c}$ from the unclipped
-  brackets instead of being skipped or zero-trimmed. For low-level red ($L < 120$),
-  where the ISP colour matrix introduces mild bracket-specific curvature, each clean
-  bracket shrinks gently toward its own $\hat d_{i,R}$.
+  bounded safely to $[-0.015, 0.14]$ (allowing slight bright-scatter fill-in without
+  runaway gain; applied transmittance clamped to $[0.84, 1.02]$). Partially clipped
+  brackets (e.g.\ \code{br1} where surrounding sky clips at 255 while the shadowed core
+  sits at 241) inherit $d_{\mathrm{pool},c}$ from the unclipped brackets rather than
+  being skipped. For low-level red ($L < 120$), where the ISP colour matrix introduces
+  mild bracket-specific curvature, each clean bracket shrinks gently toward its own
+  $\hat d_{i,R}$.
 \end{itemize}
+All safety bounds are strictly \emph{model-referenced}, never scene-referenced, so
+bright clouds cannot trigger false attenuation.
 
-\paragraph{3. Two subtle failure modes uncovered in production.}
-First, \textbf{unsigned-integer truncation}: every version of \code{flatfield.py} from
-July through early November cast float outputs via
-\code{np.clip(o, 0, 255).astype(np.uint8)} rather than rounding with \code{np.rint()}.
-Floating-point round-trip values like $179.9999$ floored to $179$, darkening every
-corrected pixel by $0.5$--$1.0$~DN ($\sim\SIrange{0.7}{1.5}{\percent}$ in linear light,
-$\sim\SIrange{2}{3}{\percent}$ after CLAHE). Adding \code{np.rint()} immediately cut
-synthetic ground-truth residuals from \SI{+1.50}{\percent} to
-\SIrange{+0.22}{+0.36}{\percent} and live Mertens residuals from \SI{+0.51}{\percent}
-to \SI{-0.12}{\percent}.
+\paragraph{3. Quantization and post-processing measurement considerations.}
+Two low-level signal-processing effects strongly influence both correction accuracy and
+auditing near frame boundaries. First, when converting linear-space corrected pixels
+back to 8-bit integers, nearest-integer rounding (\code{np.rint()}) is essential:
+flooring via \code{astype(np.uint8)} introduces a systematic $0.5$--$1.0$~DN darkening
+bias across the footprint, translating to $\sim\SIrange{0.7}{1.5}{\percent}$ in linear
+radiance and $\sim\SIrange{2}{3}{\percent}$ after local-contrast enhancement. Second,
+on \SI{4}{K} frames, $8\times 8$ CLAHE places a vertical tile seam at $x = 1440$
+(immediately beside $x = 1481$) and transitions from clamped border tiles to bilinear
+interpolation at $y = 135$ (between the $y = 68$ core and the lower background ring at
+$y \approx 173$--$198$). On a synthetic zero-defect smooth sky, this tile geometry alone
+creates a \SIrange{+3.0}{+3.9}{\percent} phantom post-CLAHE dip under a one-sided
+ring metric. Quantitative verification (\code{spot\_ab.py}) therefore measures
+\textbf{pre-CLAHE Mertens linear dips per channel} alongside post-enhancement display
+dips.
 
-Second, \textbf{CLAHE tile-seam measurement bias at the top edge}: on \SI{4}{K} frames,
-8$\times$8 CLAHE places a vertical tile boundary at $x = 1440$ (right beside
-$x = 1481$) and transitions from clamped border tile~0 to bilinear row interpolation at
-$y = 135$ (splitting our $y = 68$ core from the bottom ring at $y \approx 173$--$198$).
-Replacing the spot in all three raw brackets with exact smooth quadratic sky (0.00\%
-optical defect) still produced a \textbf{\SIrange{+3.0}{+3.9}{\percent} phantom
-post-CLAHE dip} under v11's one-sided display metric. Ongoing verification
-(\code{spot\_ab.py}) therefore reports \textbf{pre-CLAHE Mertens linear dips per
-channel} alongside enhanced display dips.
-
-Safety remains strictly \emph{model-referenced} (no scene-referenced cap that eats
-bright clouds). In the historical July archive reprocessing (\code{backfill.py}),
-display-space closed-loop gains (median $2.83$, compensating CLAHE's $\sim 2.85\times$
-amplification; distinct from any linear-space model clamp) are reported separately as
-an offline oracle upper bound.
-
-\section{Simplified two-tier architecture}
+\section{Two-tier autonomous architecture}
 \label{sec:architecture}
 
-The November~2026 refactor collapsed four overlapping scripts across two hosts
-(\code{spotnight.py}, \code{publish\_live.py}, \code{refiner.py}, and \code{pandr}'s
-unused \code{spotfit.R}) into \textbf{one unified nightly pipeline}
-(\code{spotnight.py} + \code{spot\_m2.stan} on \code{akdeniz}) and \textbf{one
-closed-form live corrector} (\code{flatfield.py} on \code{pandr}), removing over 840
-lines of dead code and retiring the daily \SI{50}{GB} Wi-Fi rsync of
-\code{flatfield\_acc/} (which had also disturbed the host's Wi-Fi RSSI door sensor for
-9~minutes every afternoon). Table~\ref{tab:levels} and Figure~\ref{fig:flow} match the
-deployed \code{2026-11-24-bayes3} runtime exactly.
+Inference and real-time correction are separated cleanly across two hosts: a nightly
+batch pipeline on a compute server (\code{spotnight.py} + \code{spot\_m2.stan} on
+\code{akdeniz}) and a lightweight closed-form corrector on the capture host
+(\code{flatfield.py} on \code{pandr}). Only the \SI{1.1}{MB} nightly model bundle
+(\code{spot\_model.json} schema~3 + \code{spot\_tmap.npy}) crosses the network via
+atomic swap; the live 5-minute capture loop has zero per-tick dependency on the compute
+server, and raw brackets are archived untouched so calibration data are never
+contaminated by prior corrections (Table~\ref{tab:levels}, Figure~\ref{fig:flow}).
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \footnotesize
 \begin{tabular}{@{}p{6.8cm}lll@{}}
@@ -430,7 +386,7 @@ live Bayesian MAP correction (place, lock, shrink, divide, round) & \code{pandr}
 prospective matched A/B audit (\code{spot\_ab.py}, 36 triples) & \code{pandr} & nightly & $\sim$\SI{1}{min} \\
 \bottomrule
 \end{tabular}
-\caption{Deployed two-tier architecture (\code{2026-11-24-bayes3}). Only the
+\caption{Two-tier autonomous architecture (\code{2026-11-24-bayes3}). Only the
 \SI{1.1}{MB} nightly bundle crosses the network; the live capture path has zero
 per-tick dependency on \code{akdeniz}.}
 \label{tab:levels}
@@ -498,60 +454,64 @@ per-tick dependency on \code{akdeniz}.}
       label={[font=\tiny\bfseries]north:{\code{akdeniz} (32 threads) --- nightly}}] {};
 \end{scope}
 \end{tikzpicture}}
-\caption{Deployed \code{2026-11-24-bayes3} data flow. Orange nodes run closed-form on
-\code{pandr}; all tracking, CRF fitting, Stan HMC sampling, and multi-bracket map
-stacking run nightly on \code{akdeniz}. Raw frames bypass the corrector so calibration
-data are never contaminated.}
+\caption{Deployed data flow. Orange nodes run closed-form on \code{pandr}; all
+tracking, CRF fitting, Stan HMC sampling, and multi-bracket map stacking run nightly on
+\code{akdeniz}. Raw frames bypass the corrector so calibration data are never
+contaminated.}
 \label{fig:flow}
 \end{figure}
 
 \section{Prospective and longitudinal performance}
 \label{sec:results}
 
-Version~11 relied primarily on offline archive reprocessing ($n = 495$ clean frames
-over 8~July days) plus a single mixed live day. Since 2026-08-18, \code{spot\_ab.py} on
-\code{pandr} has run a \textbf{prospective matched A/B audit} every night in a
-throwaway sandbox, fusing up to 36 sampled bracket triples from the preceding 26~hours
-three ways (uncorrected, live-corrected with lock, and live-corrected without lock).
+Performance is audited nightly on \code{pandr} by \code{spot\_ab.py}, which replays up
+to 36 sampled bracket triples from the preceding 26~hours in a throwaway sandbox under
+three matched arms: uncorrected, live-corrected with template lock, and live-corrected
+without lock.
 
-Across \num{2450} clean daylight triples spanning 95~days (2026-08-17 to 2026-11-23;
-Figure~\ref{fig:ab}a and Table~\ref{tab:perf}), the legacy sRGB+\code{scurve} pipeline
-kept running continuously without crashes, reducing median enhanced display dip from
-\SI{+12.94}{\percent} to \SI{+2.53}{\percent} (Aug--Nov~05, $n=2016$) and
-\SI{+13.60}{\percent} to \SI{+3.95}{\percent} (Nov~09--23, $n=434$). Crucially, this
-prospective audit caught the slow degradation as $y$ drifted from \SI{97}{px} down to
-\SI{68}{px} — driven by the combination of \code{uint8} truncation, the shallow
-midday-biased red \code{TMAP}, one-sided quadratic extrapolation, and the CLAHE
-tile-seam bias.
-
-Deploying \code{2026-11-24-bayes3} resolved every one of those regressions simultaneously
-(Table~\ref{tab:perf}, Figure~\ref{fig:ab}b):
+Under the Bayesian CRF + Stan~M2 pipeline (\code{bayes3}; Table~\ref{tab:perf},
+Figure~\ref{fig:ab}):
 \begin{itemize}
-\item On the live 26-hour \code{spot\_ab.py} audit (2026-11-24, $n=18$ clean daylight
-  triples), \textbf{pre-CLAHE Mertens linear dip} dropped from \SI{+4.15}{\percent} to
+\item On the live 26-hour prospective audit (2026-11-24, $n=18$ clean daylight triples),
+  \textbf{pre-CLAHE Mertens linear dip} drops from \SI{+4.15}{\percent} to
   \textbf{\SI{-0.12}{\percent}} (median $|\text{after}| = \SI{0.21}{\percent}$), with
-  all three channels nulled to within a tenth of a percent
-  (\textbf{B: \SI{-0.08}{\percent}, G: \SI{-0.02}{\percent}, R: \SI{-0.01}{\percent}},
-  compared to \SI{+2.18}{\percent} red residual under the legacy pipeline).
-\item \textbf{Zero frames were made worse} ($0/18$ with $|\text{after}| > |\text{before}|$),
-  and the symmetric lock outperformed lock-off ($-0.12\%$ vs.\ $+0.14\%$).
-\item \textbf{Post-CLAHE enhanced display dip} dropped from \SI{+11.89}{\percent} to
-  \textbf{\SI{+0.63}{\percent}} (down from \SI{+3.95}{\percent} the prior two weeks).
-\item On the sandboxed synthetic end-to-end test (\code{tests/test\_synthetic\_end\_to\_end.py}),
-  injecting the warped published \code{TMAP} into a 3-bracket synthetic sky nulls all
-  three channels against exact ground truth to $+0.36\%$ (B), $+0.22\%$ (G), and
-  $+0.36\%$ (R) (\code{PASS}, threshold \SI{0.5}{\percent}).
+  every colour channel nulled to within a tenth of a percent
+  (\textbf{B: \SI{-0.08}{\percent}, G: \SI{-0.02}{\percent}, R: \SI{-0.01}{\percent}}).
+\item \textbf{Zero frames are made worse} ($0/18$ with $|\text{after}| > |\text{before}|$),
+  and symmetric template lock improves residual accuracy over open-loop extrapolation
+  ($-0.12\%$ vs.\ $+0.14\%$).
+\item \textbf{Post-CLAHE enhanced display dip} drops from \SI{+11.89}{\percent} to
+  \textbf{\SI{+0.63}{\percent}}.
+\item On the synthetic end-to-end verification test
+  (\code{tests/test\_synthetic\_end\_to\_end.py}), injecting the warped published
+  transmittance map into a smooth 3-bracket sky nulls all three channels against exact
+  ground truth to $+0.36\%$ (B), $+0.22\%$ (G), and $+0.36\%$ (R) (\code{PASS},
+  threshold \SI{0.5}{\percent}).
 \end{itemize}
+
+Comparing against a 95-day prospective baseline using nominal inverse-sRGB
+linearization and an empirical depth-scaling curve (\num{2450} clean daylight triples,
+2026-08-17 to 2026-11-23; Figure~\ref{fig:ab} and Table~\ref{tab:perf}) quantifies the
+gain from explicit physical modeling. Across the 3-month baseline, median enhanced dip
+was reduced from $+12.94\%$ to $+2.53\%$ (Aug--Nov~05, $n=2016$) and $+13.60\%$ to
+$+3.95\%$ as the blemish neared the top edge (Nov~09--23, $n=434$), with a pre-CLAHE
+Mertens linear residual of $+0.76\%$ overall and $+2.18\%$ in red (Nov~20--23, $n=19$).
+Incorporating empirical CRF calibration, Stan~M2 scatter priors, multi-bracket stacking,
+edge ridge regularization, and exact rounding removes the red channel residual
+completely ($+2.18\% \to -0.01\%$) and cuts the enhanced display residual by more than
+$6\times$ ($+3.95\% \to +0.63\%$), matching the closed-loop offline oracle benchmark
+($+0.52\%$, $n=495$ over 8~July days). Figure~\ref{fig:ba} shows pixel-scale detail of
+the correction: only the compact footprint is modified, preserving local photon noise.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{figs/ab_longitudinal.pdf}
   \caption{Prospective live A/B verification on \code{pandr}. (a)~Daily median enhanced
-  display dip across \num{2450} clean daylight triples (Aug~17--Nov~23) under the
-  legacy sRGB+\code{scurve} pipeline (red) vs.\ uncorrected (grey), showing progressive
-  edge-era drift and the sharp drop on Nov~24 with \code{bayes3} (green star,
-  $+0.63\%$). (b)~Pre-CLAHE Mertens linear residuals by channel: legacy Nov~20--23
-  ($n=19$) vs.\ \code{bayes3} Nov~24 ($n=18$, all channels within $\pm 0.08\%$).}
+  display dip across \num{2450} clean daylight triples (Aug~17--Nov~23) for the
+  baseline sRGB + empirical-scaling pipeline (red) vs.\ uncorrected (grey), together
+  with the CRF + Stan~M2 pipeline (\code{bayes3}, green star, $+0.63\%$).
+  (b)~Pre-CLAHE Mertens linear residuals by channel: sRGB baseline ($n=19$) vs.\
+  CRF + Stan~M2 ($n=18$, all channels within $\pm 0.08\%$).}
   \label{fig:ab}
 \end{figure}
 
@@ -564,18 +524,18 @@ Deploying \code{2026-11-24-bayes3} resolved every one of those regressions simul
 evaluation cohort & $n$ & space & before & after & BGR after / note \\
 \midrule
 July offline (closed-loop oracle) & 495 & enhanced & $+4.46\%$ & $+0.52\%$ & $88.1\%$ rem.\ (8~d) \\
-Live A/B, Aug~18--Nov~05 (legacy) & 2016 & enhanced & $+12.94\%$ & $+2.53\%$ & $y: 97 \to 76$~px \\
-Live A/B, Nov~09--Nov~23 (legacy) & 434 & enhanced & $+13.60\%$ & $+3.95\%$ & $y \approx 68$~px \\
-Nov~20--23 audit (legacy) & 19 & Mertens lin. & $+4.43\%$ & $+0.76\%$ & $[+0.81, +0.27, +2.18]\%$ \\
+Prospective baseline, Aug~18--Nov~05 (sRGB) & 2016 & enhanced & $+12.94\%$ & $+2.53\%$ & $y: 97 \to 76$~px \\
+Prospective baseline, Nov~09--Nov~23 (sRGB) & 434 & enhanced & $+13.60\%$ & $+3.95\%$ & $y \approx 68$~px \\
+Nov~20--23 baseline audit (sRGB) & 19 & Mertens lin. & $+4.43\%$ & $+0.76\%$ & $[+0.81, +0.27, +2.18]\%$ \\
 \rowcolor{green!7}
-\textbf{Live A/B, Nov~24 (\code{bayes3})} & \textbf{18} & \textbf{Mertens lin.} & $\mathbf{+4.15\%}$ & $\mathbf{-0.12\%}$ & $\mathbf{[-0.08, -0.02, -0.01]\%}$ \\
+\textbf{Live A/B, Nov~24 (CRF + Stan~M2)} & \textbf{18} & \textbf{Mertens lin.} & $\mathbf{+4.15\%}$ & $\mathbf{-0.12\%}$ & $\mathbf{[-0.08, -0.02, -0.01]\%}$ \\
 \rowcolor{green!7}
-\textbf{Live A/B, Nov~24 (\code{bayes3})} & \textbf{18} & \textbf{enhanced} & $\mathbf{+11.89\%}$ & $\mathbf{+0.63\%}$ & \textbf{$0/18$ worse} \\
+\textbf{Live A/B, Nov~24 (CRF + Stan~M2)} & \textbf{18} & \textbf{enhanced} & $\mathbf{+11.89\%}$ & $\mathbf{+0.63\%}$ & \textbf{$0/18$ worse} \\
 \bottomrule
 \end{tabular}
-\caption{Summary of offline, 3-month prospective legacy, and \code{bayes3} live
-performance on clean daylight frames. Legacy enhanced numbers include both the real
-optical residual and the CLAHE tile-seam bias at $y \approx 68$.}
+\caption{Summary of offline, 3-month prospective sRGB baseline, and live Bayesian
+CRF + Stan~M2 performance on clean daylight frames. Enhanced-space baseline figures
+near $y \approx 68$ include both optical residuals and the CLAHE tile-seam bias.}
 \label{tab:perf}
 \end{table}
 
@@ -596,82 +556,73 @@ optical residual and the CLAHE tile-seam bias at $y \approx 68$.}
   \label{fig:ba}
 \end{figure}
 
-\section{Physical identification, mount creep, and corrected optics}
+\section{Optical physics and viscoelastic mount metrology}
 \label{sec:physics}
 
-\subsection{Exact pupil-shadow solve and off-axis ellipticity}
+\subsection{Pupil-shadow geometry and off-axis ellipticity}
 
 For a camera of entrance-pupil diameter $a \approx \SI{1.08}{mm}$ focused at nominal
-distance $F \approx \SI{0.5}{m}$, the ray bundle collected by a single sensor pixel
-crosses a window at distance $d$ from the entrance pupil as a circular patch of diameter
-$a' = a(1 - d/F)$ \citep{goodman2017fourier,potmesil1981lens,willson2005dust}. An
-opaque speck of diameter $s < a'$ convolved with that circular pupil produces a
+distance $F \approx \SI{0.5}{m}$, the ray cone collected by a single sensor pixel
+intersects a window at distance $d$ in front of the entrance pupil in a circular patch
+of diameter $a' = a(1 - d/F)$ \citep{goodman2017fourier,potmesil1981lens,willson2005dust}.
+An opaque speck of diameter $s < a'$ convolved with that circular pupil produces a
 \emph{flat-topped} shadow whose central fractional attenuation is $(s/a')^2$ and whose
 \textbf{exact half-maximum diameter equals the projected pupil diameter $a'$ itself}
 (to $O((s/a')^2)$), not $a' + s$.
 
-In v11, a subtle inconsistency crept in: the text plugged the Gaussian-fit FWHM
-(\SI{76}{px}) into $(s + a')/d$ to infer $d \approx \SIrange{30}{35}{mm}$, while
-reporting an empirical half-depth radius of $r_{1/2} \approx \SI{50.5}{px}$
-($\mathrm{FWHM} \approx \SI{101}{px}$) 40~lines later — and then had to posit an
-entrance pupil \SI{2}{cm} behind the front glass of a \SI{4.3}{mm} wide-angle lens.
-That pupil depth is geometrically impossible for a compact \ang{90}-FOV lens (a pupil
-\SI{20}{mm} back at $\pm\ang{45}$ requires a $> \SI{40}{mm}$ front element to avoid
-vignetting, and retrofocus designs place the entrance pupil \emph{near} the front
-element, not deep behind it).
-
-Using the consistent empirical flat-top width $\mathrm{FWHM} = \SI{101}{px}$
-($r_{1/2} = 51.3 / 50.3 / 48.9\text{ px}$ in B/G/R, unchanged to \SI{0.4}{px} over four
-months; Figure~\ref{fig:profile}a) resolves the contradiction immediately. With
-paraxial focal length $f_{\mathrm{px}} = \sqrt{3840^2 + 2160^2}/2 \approx \SI{2203}{px}$,
-at the blemish's off-axis angle $\theta = \arctan(1103 / 2203) = \ang{26.6}$
-($\sec\theta = 1.118$, geometric-mean area stretch $\sec^{3/2}\theta = 1.182$):
+Across four months of data, the empirical flat-top width is $\mathrm{FWHM} = \SI{101}{px}$
+($r_{1/2} = 51.3 / 50.3 / 48.9\text{ px}$ in B/G/R, stable to \SI{0.4}{px};
+Figure~\ref{fig:profile}a). With paraxial focal length
+$f_{\mathrm{px}} = \sqrt{3840^2 + 2160^2}/2 \approx \SI{2203}{px}$, at the blemish's
+off-axis angle $\theta = \arctan(1103 / 2203) = \ang{26.6}$ ($\sec\theta = 1.118$,
+geometric-mean area stretch $\sec^{3/2}\theta = 1.182$):
 \begin{equation}
   d \;\approx\; \frac{g_{\theta}\,f_{\mathrm{px}}\,a}{\mathrm{FWHM}_{\mathrm{px}} + g_{\theta}\,f_{\mathrm{px}}\,a/F}
     \;\approx\; \SIrange{22.6}{26.5}{mm} \quad (g_\theta \in [1, 1.182]),
 \end{equation}
-yielding $d \approx \SIrange{23}{28}{mm}$ — directly consistent with $\sim\SIrange{4}{6}{mm}$
-pupil inset behind the front element plus camera-to-pane gap and glass/double-pane
-thickness (if the speck sits on the outer surface of Porter Hall's insulated glazing).
-The corrected area ratio $(s/a')^2 \approx 0.052$ with $a' \approx \SI{1.02}{mm}$ gives
-a speck diameter of $s \approx \SIrange{0.23}{0.24}{mm}$, and a translational lever of
+giving $d \approx \SIrange{23}{28}{mm}$ --- directly consistent with $\sim\SIrange{4}{6}{mm}$
+pupil inset behind the front element of a wide-angle retrofocus lens plus the
+camera-to-pane gap and double-pane glass thickness (if the speck sits on the outer
+surface of Porter Hall's insulated glazing). The measured area ratio
+$(s/a')^2 \approx 0.052$ with $a' \approx \SI{1.02}{mm}$ yields a speck diameter of
+$s \approx \SIrange{0.23}{0.24}{mm}$ and a translational lever of
 $f_{\mathrm{px}}/d \approx \SIrange{78}{97}{px/mm}$ on axis ($\sim\SIrange{95}{115}{px/mm}$
 off axis).
 
-An independent geometric prediction confirms this rectilinear model: an off-axis
+An independent geometric prediction tests this rectilinear model directly: an off-axis
 circular pupil shadow at angle $\theta$ projects onto a flat sensor as an ellipse
-stretched radially by $\sec^2\theta$ and tangentially by $\sec\theta$, giving an axis
-ratio of $\sec\theta = 1.118$ pointed directly toward the optical axis $(1920, 1080)$
-(radial angle \ang{66.4}). On the November~24 \code{TMAP} (Figure~\ref{fig:profile}b),
+stretched radially by $\sec^2\theta$ and tangentially by $\sec\theta$, yielding an axis
+ratio of $\sec\theta = 1.118$ oriented directly toward the optical axis $(1920, 1080)$
+(radial angle \ang{66.4}). On the empirical transmittance map (Figure~\ref{fig:profile}b),
 the weighted second-moment ellipse has axis ratio \textbf{1.095} oriented at
-\textbf{\ang{57.7}} — matching both magnitude and orientation to within \ang{8.7}.
+\textbf{\ang{57.7}} --- matching both aspect ratio and orientation to within \ang{8.7}.
 
-\subsection{125-day viscoelastic mount creep: an unintended strain gauge}
+\subsection{125-day viscoelastic mount creep: a passive optical strain gauge}
 
-In July (8~days of data), v11 attributed the blemish's \SI{120}{px} walk to reversible
-thermal breathing of a sun-struck window sash. Four months of tracking (73~accepted
-nightly fixes spanning 125~days, 2026-07-22 to 2026-11-24; Figure~\ref{fig:creep})
-falsify reversible thermal expansion and reveal something much cleaner:
+Four months of nightly tracking (73~accepted fixes spanning 125~days, 2026-07-22 to
+2026-11-24; Figure~\ref{fig:creep}) reveal a remarkably clean mechanical signature:
 \begin{itemize}
 \item The shadow moved monotonically along a single straight line from $(1188.7, 172.4)$
   to $(1480.8, 68.0)$: $\Delta x = +292.2$~px, $\Delta y = -104.4$~px, total distance
-  \SI{310.3}{px}, with an RMS perpendicular deviation of just \textbf{\SI{4.1}{px}}
+  \SI{310.3}{px}, with an RMS perpendicular scatter of just \textbf{\SI{4.1}{px}}
   (1.3\% of path length) and \emph{zero} seasonal reversal as Pittsburgh cooled from
   July heat to November winter.
-\item Its speed decayed smoothly by nearly two orders of magnitude: $\sim\SI{14}{px/day}$
+\item Its velocity decayed smoothly by nearly two orders of magnitude: $\sim\SI{14}{px/day}$
   in late July $\to \SI{3.0}{px/day}$ in August $\to \SI{1.7}{px/day}$ in September
   $\to \SI{0.8}{px/day}$ in October $\to <\SI{0.3}{px/day}$ in late November.
-\item Along-axis displacement $s(t)$ is poorly fit by constant-velocity drift
-  ($R^2 = 0.873$, $\mathrm{RMSE} = \SI{25.9}{px}$), but follows \textbf{Andrade's
-  universal $t^{1/3}$ primary viscoelastic creep law} \citep{andrade1910creep},
-  $s(t) = A\,t^{\alpha}$ with $\alpha = \mathbf{0.339}$ ($R^2 = \mathbf{0.9889}$,
-  $\mathrm{RMSE} = \SI{7.6}{px}$), and logarithmic relaxation $A\ln(1 + t/\tau)$
-  ($\tau = \SI{2.19}{d}$, $R^2 = 0.9854$, $\mathrm{RMSE} = \SI{8.8}{px}$).
+\item Along-axis displacement $s(t)$ is poorly described by constant-velocity drift
+  ($R^2 = 0.873$, $\mathrm{RMSE} = \SI{25.9}{px}$) or single-timescale exponential
+  relaxation ($R^2 = 0.919$), but closely follows \textbf{Andrade's universal $t^{1/3}$
+  primary viscoelastic creep law} \citep{andrade1910creep}, $s(t) = A\,t^{\alpha}$ with
+  $\alpha = \mathbf{0.339}$ ($R^2 = \mathbf{0.9889}$, $\mathrm{RMSE} = \SI{7.6}{px}$),
+  and logarithmic creep $A\ln(1 + t/\tau)$ ($\tau = \SI{2.19}{d}$, $R^2 = 0.9854$,
+  $\mathrm{RMSE} = \SI{8.8}{px}$).
 \end{itemize}
-At $\sim\SI{95}{px/mm}$, the entire 125-day walk corresponds to $\sim\SIrange{3.1}{3.7}{mm}$
-of monotonic mechanical settling of the camera mount after its July~17 installation.
-The accidental dust speck functions as a \SI{10}{\micro\meter}-resolution optical
-strain gauge invisible in the distant skyline.
+At $\sim\SI{95}{px/mm}$, the 125-day walk corresponds to $\sim\SIrange{3.1}{3.7}{mm}$
+of monotonic viscoelastic settling of the camera mount following its July~17
+installation. Because distant skyline landmarks move negligibly under millimetre
+translation, the accidental window grain functions as a passive
+\SI{10}{\micro\meter}-resolution optical strain gauge.
 
 \begin{figure}[t]
   \centering
@@ -681,51 +632,40 @@ strain gauge invisible in the distant skyline.
   perpendicular scatter \SI{4.1}{px}), crossing both the $y=105$ ring-clipping and
   $y=85$ lock-range thresholds. (b)~Along-axis displacement follows Andrade $t^{1/3}$
   creep ($\alpha = 0.34$, $R^2 = 0.989$) and logarithmic relaxation ($R^2 = 0.985$),
-  ruling out constant drift ($R^2 = 0.873$) or reversible seasonal thermal breathing.}
+  sharply outperforming constant drift ($R^2 = 0.873$) and ruling out reversible
+  seasonal thermal expansion.}
   \label{fig:creep}
 \end{figure}
 
-\subsection{Why v11's extinction-paradox and $\lambda^{-2}$ arguments were wrong}
-\label{sec:correction}
+\subsection{Reciprocity, scattering, and chromaticity under diffuse sky illumination}
+\label{sec:reciprocity}
 
-In the interest of scientific self-correction, we explicitly retract two optical claims
-made in v11 (\S\S9--10 of the July draft) and verified algebraically in
-\code{lean\_verification/SpotFit/Section10.lean}:
+The measured optical attenuation and colour structure clarify how classical particle
+scattering behaves in wide-field imaging against an extended sky:
 \begin{enumerate}
-\item \textbf{Extended sky illumination obeys reciprocity, not collimated extinction.}
-  Version~11 interpreted the $\sim 5\%$ core depth (near $1\times (s/a)^2$ rather than
-  $2\times (s/a)^2$) as an instantiation of wide-acceptance recollection of the
-  extinction paradox \citep{vandehulst1981light,bohren1983absorption,berg2011extinction,deepak1978forward,lai2004beam}
-  and cited \citet{markel2020extinction}'s $\sim\ang{60}$ aperture criterion. Two
-  errors undermine that framing. First, those theorems treat a particle illuminated by
-  a \emph{collimated plane wave or narrow beam}; our camera views an \emph{incoherent,
-  extended diffuse sky}. By Helmholtz reciprocity (conservation of radiance), elastic
-  forward diffraction in front of a uniform sky cannot darken the image at \emph{any}
-  pupil acceptance angle, because rays diffracted out of a pixel's cone are exactly
-  compensated by rays diffracted in from adjacent sky directions. Second, the direction
-  of Markel's $\sim\ang{60}$ comparison was inverted: measuring far-field extinction
-  ($Q_{\mathrm{ext}} = 2$) requires a \emph{tiny} acceptance angle ($\ll \lambda/s$),
-  whereas a large $\sim\ang{60}$ integrating aperture collects forward scatter and
-  converges toward \emph{absorption}.
-\item \textbf{The $\lambda^{-2}$ recollection law is empirically refuted by CRF
-  calibration.} Version~11 calibrated a $\rho(\lambda) \propto \lambda^{-2}$ texture
-  recollection model to July's uncalibrated inverse-sRGB map integrals
-  (B:G:R $= 1.00 : 1.08 : 1.07$). Under our empirical CRF in November, raw daytime
-  integrated deficits \emph{invert} to $1.000 : 1.097 : 0.904$ (red dropping 10\% below
-  blue because winter sun elevates the red $k_{\mathrm{fac}}\Lfac/\Lbg$ forward-scatter
-  term!), and once $k_{\mathrm{fac}}$ is factored out in Stan~M2, pure optical blocking
-  $1 - t_c$ is achromatic in B and G (\SI{4.75}{\percent} vs.\ \SI{4.74}{\percent};
-  Table~\ref{tab:stan}). What \emph{does} persist reproducibly across four months is a
-  \SI{2.4}{px} (5\%) width ordering ($r_{1/2}$: B \SI{51.3}{px}, G \SI{50.3}{px},
-  R \SI{48.9}{px}), which is consistent with modest axial/pupil chromatic aberration or
-  ISP chroma processing rather than $\lambda^{-2}$ diffraction recollection.
+\item \textbf{Extended-sky reciprocity explains $1\times$ geometric blocking.}
+  For a macroscopic particle ($s \gg \lambda$) illuminated by a \emph{collimated plane
+  wave or narrow beam}, the optical extinction paradox gives a far-field extinction
+  cross-section of $2\times$ the geometric area ($Q_{\mathrm{ext}} = 2$), half from
+  blocking/absorption and half from forward edge diffraction
+  \citep{vandehulst1981light,bohren1983absorption,berg2011extinction,deepak1978forward,lai2004beam,markel2020extinction}.
+  A sky monitor, however, views an \emph{incoherent, extended diffuse sky}. By
+  Helmholtz reciprocity (conservation of radiance), elastic forward diffraction out of
+  a pixel's acceptance cone is compensated by rays diffracted in from adjacent sky
+  directions of equal radiance, so diffraction produces no net darkening. Only
+  geometric blocking ($1 - t \approx (s/a')^2 \approx 0.05$) and anisotropic
+  illumination scattering ($k_{\mathrm{fac}}\Lfac$) survive.
+\item \textbf{Chromaticity separates into achromatic blocking, red forward scatter, and
+  mild optical dispersion.} Under empirical CRF calibration, raw daytime integrated
+  deficits stand in the ratio B:G:R $= 1.000 : 1.097 : 0.904$ --- red appearing 10\%
+  shallower than blue because low-angle direct sunlight elevates the red
+  $k_{\mathrm{fac}}\Lfac/\Lbg$ forward-scattering fill-in. Once Stan~M2 factors out
+  this illumination-driven scatter, pure optical blocking $1 - t_c$ is achromatic in
+  blue and green (\SI{4.75}{\percent} vs.\ \SI{4.74}{\percent}; Table~\ref{tab:stan}).
+  Separately, the shadow's radial width exhibits a reproducible \SI{2.4}{px} (5\%)
+  wavelength ordering ($r_{1/2} = 51.3 / 50.3 / 48.9\text{ px}$ in B/G/R across all
+  four months), consistent with modest axial or pupil chromatic aberration in the lens.
 \end{enumerate}
-
-The net scientific outcome is stronger, not weaker: replacing a tenuous far-field
-diffraction analogy with empirical CRF calibration directly confirmed the
-\citet{gu2009dirty} dirty-lens scattering equation (Eq.~\eqref{eq:m2}) at $>12\sigma$
-for a single grain, eliminated the spurious negative offset, and cut live residuals by
-an order of magnitude.
 
 \section{Relation to prior work}
 \label{sec:literature}
@@ -735,22 +675,21 @@ lens or sensor dust \citep{willson2005dust,zhou2007dust,gu2007dirtyglass,gu2009d
 multi-view parallax methods requiring camera motion \citep{xue2015obstruction},
 refractive raindrop models \citep{you2016adherent}, data-driven automotive soiling
 segmentation/inpainting \citep{uricar2019soiling}, and population-level dust deposition
-censuses on Mars \citep{chenchen2023insight}. This work contributes three pieces that
-sit at the intersection:
+censuses on Mars \citep{chenchen2023insight}. This work contributes three results at
+their intersection:
 \begin{itemize}
 \item \textbf{Single-grain validation of \citet{gu2009dirty} with explicit scatter
   forcing:} measuring both achromatic attenuation ($t \approx 0.952$) and direct-sun
-  additive scattering ($k_{\mathrm{fac},R} = +0.0072$) per channel in a consumer HDR
-  camera without laboratory calibration.
-\item \textbf{Continuous 125-day tracking and mount metrology:} showing that even a
-  rigidly fixed camera violates the calibrate-once assumption by $>3\times$ the
+  additive scattering ($k_{\mathrm{fac},R} = +0.0072$) per channel in an uncalibrated
+  consumer HDR camera using exposure brackets alone.
+\item \textbf{Continuous 125-day tracking and mount metrology:} demonstrating that even
+  a rigidly mounted camera violates the calibrate-once assumption by $>3\times$ the
   shadow's FWHM through viscoelastic mount creep ($\alpha = 0.34$), while turning the
   defocused shadow into a passive sub-millimetre strain gauge.
-\item \textbf{Closed-loop Bayesian deployment with honest prospective auditing:}
-  demonstrating how long-running autonomous correction actually fails in the wild
-  (winter clipping, integer truncation, edge-geometry conditioning, CLAHE measurement
-  artifacts) and how hierarchical shrinkage toward a live physical Stan posterior fixes
-  those failures without black-box inpainting.
+\item \textbf{Closed-loop Bayesian deployment with prospective auditing:} showing that
+  conjugate MAP shrinkage toward a live physical Stan posterior --- paired with
+  empirical CRF calibration, multi-bracket stacking, and edge ridge regularization ---
+  achieves sub-0.15\% linear optical removal across RGB without black-box inpainting.
 \end{itemize}
 
 \section{Code, reproducibility, and limitations}
@@ -773,13 +712,14 @@ driver (\code{reproduce\_figures.py}); and the synthetic end-to-end test is
 \code{tests/test\_\allowbreak synthetic\_\allowbreak end\_\allowbreak to\_\allowbreak end.py}.
 \par}
 
-\paragraph{Remaining limitations.}
+\paragraph{Limitations.}
 \begin{itemize}
-\item \textbf{Post-upgrade prospective window is one day so far:} while the legacy
-  pipeline has \num{2450} prospective A/B triples over 95~days, the \code{bayes3}
-  upgrade was deployed on 2026-11-24 ($n=18$ clean live triples verified); multi-week
-  winter accumulation in \code{ab\_log.csv} is ongoing.
-\item \textbf{Uncalibrated local plate scale and wipe test:} $d \approx \SIrange{23}{28}{mm}$
+\item \textbf{Prospective window for the full CRF + Stan~M2 corrector:} while the
+  prospective A/B infrastructure has accumulated \num{2450} clean daylight triples over
+  95~days under the sRGB baseline, the live CRF + Stan~M2 corrector has so far been
+  audited over one full daylight cycle ($n=18$ clean triples); multi-week winter
+  accumulation is ongoing.
+\item \textbf{Uncalibrated local plate scale and pane side:} $d \approx \SIrange{23}{28}{mm}$
   and the $\sim\SI{95}{px/mm}$ lever inherit $\sim 20\%$ geometric uncertainty until a
   controlled camera translation or physical wipe test (inner vs.\ outer pane) is
   performed.
@@ -787,11 +727,11 @@ driver (\code{reproduce\_figures.py}); and the synthetic end-to-end test is
   calibration, red exposure ratios retain \SI{8.5}{\percent} median error from the ISP
   colour matrix on saturated blue sky; raw Bayer readout would eliminate this entirely.
 \item \textbf{Top-edge margin:} at $y \approx 68$~px, the upward template-lock range is
-  already narrowed to \SI{20}{px}; if mount creep were to resume upward past $y < 55$,
+  narrowed to \SI{20}{px}; if mount creep were to continue upward past $y < 55$,
   physically lifting the camera a few millimetres remains the only permanent remedy.
 \item \textbf{Extreme distractors:} no systematic false-correction stress test has been
   run on birds, contrails, or direct solar glare sitting squarely inside the footprint,
-  though the Bayesian roughness shrinkage and model-referenced depth bounds
+  though Bayesian roughness shrinkage and model-referenced depth bounds
   ($[-0.015, 0.14]$) strictly cap any perturbation.
 \end{itemize}
 
