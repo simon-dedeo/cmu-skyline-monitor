@@ -10,7 +10,7 @@
 \usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,
             citecolor=blue!55!black,
             pdftitle={The Lavender Flash of August 9th},
-            pdfauthor={CMU Skyline Monitor (Simon DeDeo, with Claude)},
+            pdfauthor={CMU Skyline Monitor (Simon DeDeo)},
             pdfsubject={Colorimetric closure test of lightning emission through a fixed-exposure camera},
             pdfkeywords={lightning spectroscopy, colorimetry, nitrogen fixation, N2+ first negative, urban meteorology}]{hyperref}
 \usepackage{microtype}
@@ -22,10 +22,11 @@
   \large\mdseries Lightning colorimetry from plasma physics to webcam Bayer}
 \author{CMU Skyline Monitor --- \code{pandr} ---
   \href{https://proofsandreasons.io}{\code{proofsandreasons.io}}\thanks{Operated by
-Simon DeDeo (Carnegie Mellon University). Analysis and code developed with AI
-assistance (Claude, Anthropic); the human operator is responsible for all claims,
-citations and errors.}}
-\date{2026-08-11 (v3)}
+Simon DeDeo (Carnegie Mellon University). Analysis, revision, and code developed with AI
+assistance; the human operator is responsible for all claims, citations, and errors.
+Data, analysis code, and LaTeX source:
+\href{https://github.com/simon-dedeo/lavender-flash}{\code{github.com/simon-dedeo/lavender-flash}}.}}
+\date{2026-11-24 (v4)}
 
 \begin{document}
 \maketitle
@@ -34,26 +35,35 @@ citations and errors.}}
 \noindent
 At 00:11~EDT on 9 August 2026, a fixed-exposure skyline camera in Pittsburgh
 recorded a single frame in which an overcast midnight sky turned pale lavender:
-sky-band mean $(R,G,B)=(172,170,223)$ against a sodium-amber baseline of
-$(22,19,7)$. We treat this as a closure test: can the color be predicted from
-the physics of lightning emission, propagated through cloud, air, and the
-camera's color pipeline? A three-component spectral model---a 30\,000~K
-continuum standing in for free--free and free--bound emission, N\,\textsc{ii}
-and hydrogen Balmer lines, and the \Ntp{} first-negative band system---is
-integrated against approximate Bayer sensitivities with daylight (5600~K)
-white-balance gains, the configuration the instrument locks by design. The
-measured chromaticity is reproduced to one digital number by a mixture of
-$\sim$20\% continuum, 65\% atomic-line, and 12--21\% molecular-band energy,
-the molecular range bracketed by the optically-thick (Planck) and
-optically-thin (Kramers) continuum limits. Atomic lines and continuum alone
-cannot reach the observed blueness: the violet \Ntp{} contribution is
-\emph{required} under either limit.
-We detail the emission components and how the degeneracy could be broken,
-connect the \Ntp{} bands to lightning's role in nitrogen fixation, and close
-with the color theory of a purple no eye witnessed.
+top-band mean $(R,G,B)=(172,170,223)$ against neighboring sodium-amber baselines
+of $(22,19,7)$ before and $(9,8,4)$ after. We treat this frame as a
+radiometric and colorimetric closure test: can the measured color be predicted
+from the physics of lightning emission propagated through cloud, air, and the
+camera's imaging pipeline? First, we validate the camera model against 769
+daytime sky frames from the same fixed-5600~K white-balance archive. That test
+exposes a critical pitfall of earlier modeling: comparing linearized sRGB pixels
+against un-matrixed Bayer sensitivities omits the camera's $3\times 3$
+color-correction matrix (CCM), failing even on ordinary clear blue afternoon
+skies ($B/G=2.19$ measured vs.\ $\le 1.81$ un-matrixed) and spuriously forcing
+a large violet \Ntp{} requirement. Restoring a colorimetrically consistent
+pipeline (Bayer$+$CCM or CIE-sRGB) overturns the claim that \Ntp{} bands are
+required at 12--21\%: an optically thin Kramers free--free/free--bound continuum
+plus N\,\textsc{ii} and hydrogen Balmer lines reproduces the flash with only
+$0$--$14\%$ \Ntp{} energy---e.g.\ $(w_c,w_a,w_m)=(0.57,0.38,0.05)$ in CIE-sRGB
+at 5600~K---consistent with high-speed return-stroke spectroscopy. Two sharper
+physical constraints survive: (i)~an optically thin, cooling continuum (and/or
+longer path reddening) is strongly favored over an optically thick 30\,000~K
+Planck continuum, which renders too blue ($B/G=2.10$); and (ii)~strong
+H$\alpha$ (656.3~nm) emission from dissociated water vapor is strictly required
+to push $R/G>1$ under every camera model. Direct 4K frame diagnostics using the
+camera's empirically measured per-channel response function remove
+brightness-dependent $R/G$ drift, isolate blue-channel highlight roll-off above
+DN~220, and verify rolling-shutter uniformity. We close by connecting the
+nitrogen emission to lightning's abiotic fixation pathways and examining the
+metameric color theory of a pale violet no eye witnessed.
 \end{abstract}
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \centering
   \begin{subfigure}[t]{0.325\textwidth}
     \includegraphics[width=\textwidth]{frame_before.jpg}
@@ -68,32 +78,96 @@ with the color theory of a purple no eye witnessed.
     \caption*{\footnotesize 00:17 EDT}
   \end{subfigure}
   \caption{Three consecutive fixed-exposure reference frames (100~ms,
-  gain and white balance locked), night of 8--9 August 2026. Fixed light
-  sources are unchanged across the triplet (lit windows $162\to174\to161$;
-  lamp cores $242\to250\to243$), ruling out an exposure or gain excursion:
+  white balance locked at 5600~K, solar-keyed night gain $86\to 87\to 87$),
+  night of 8--9 August 2026. Fixed artificial sources are stable across the
+  triplet (lamp cores $>220$: $246\to 245\to 236$; lit windows show only
+  additive sky-reflected fill), ruling out an exposure or gain excursion:
   the middle frame records real, additive, sky-borne light.}
   \label{fig:frames}
 \end{figure}
 
-\section{The observation}
+\section{The observation and 4K radiometry}
+\label{sec:obs}
 The monitor captures a radiometric reference frame of the Carnegie Mellon
-skyline every five minutes with sun-elevation-keyed manual exposure, fixed
-gain, and fixed 5600~K white balance. On the night in question the log shows
-one anomalous sample: full-frame brightness 138.7 (neighbors 19--37) and
-sky color \code{\#b9b5ed}. The 100~ms exposure integrated one or more strokes
-of a flash whose light, diffused by the overcast deck, illuminated the scene
-to twilight levels (Fig.~\ref{fig:frames}). Two later samples (00:33, 00:39)
-show weak blue excursions consistent with more distant flashes. Linearizing
-the sRGB-encoded means \citep{iec1999} and subtracting the baseline frame
-gives the flash-only linear color
+skyline roughly every 5.4~minutes ($\sim$326~s cadence) with
+sun-elevation-keyed manual exposure and gain and fixed 5600~K daylight white
+balance. On the night of 8--9 August 2026 the log (\code{science.csv}, row
+logged at 00:12:15~EDT immediately after the 00:11~EDT reference capture) shows
+one anomalous sample: full-frame brightness 138.7 (neighbors 23.1--31.4) and
+central-sky swatch \code{\#b9b5ed}. The 100~ms exposure integrated one or more
+strokes of a flash whose light, diffused by the overcast deck, illuminated the
+scene to twilight levels (Fig.~\ref{fig:frames}). Two later samples (00:33 and
+00:39~EDT; sky swatches \code{\#11151d} and \code{\#111722}) show weak blue
+excursions consistent with more distant flashes.
+
+Direct inspection of the archived 4K ($3840\times 2160$) reference triplet
+refines the measurement in four ways over a single summary swatch. First, the
+logged swatch \code{\#b9b5ed} is the OKLab perceptual average over the
+monitor's central sky box (rows 5--35\%, middle third), which sits over the
+brightest part of the illuminated cloud deck; the full-width upper quarter
+(top 25\%) gives raw mean $(R,G,B)=(172.0,169.8,223.1)$ (\code{\#acaadf})
+against $(21.9,18.6,7.0)$ at 00:06~EDT and $(9.3,8.4,4.0)$ at 00:17~EDT.
+(Because the night exposure schedule interpolates gain slowly with solar
+depression, \code{ref\_gain} stepped from 86 to 87 between 00:06 and 00:11 and
+remained 87 at 00:17.) Second, linearizing \emph{pixel-by-pixel} rather than
+linearizing the band mean (avoiding Jensen bias) with the standard sRGB
+transfer function \citep{iec1999} and subtracting the mean of the bracketing
+baselines yields the flash-only linear sky color
 \begin{equation}
-  (r,g,b)_{\rm flash} = (0.405,\,0.396,\,0.736), \qquad
-  R/G = 1.023,\quad B/G = 1.860 .
+  (r,g,b)_{\rm flash} = (0.414,\,0.403,\,0.747), \qquad
+  R/G = 1.028,\quad B/G = 1.854 .
   \label{eq:meas}
 \end{equation}
-Blue far above green, red slightly above green: pale lavender. The question
-is whether these two ratios are quantitatively consistent with what lightning
-emits.
+Because the flash is $\sim$40--100$\times$ brighter than the sodium-amber
+baseline in linear radiance, subtracting only the `before' frame
+($R/G=1.026$, $B/G=1.863$) or only the gain-matched `after' frame
+($R/G=1.030$, $B/G=1.845$) shifts the ratios by less than $1\%$.
+
+Third, the 4K frame allows two critical sensor diagnostics that earlier
+summaries missed (Fig.~\ref{fig:radiometry}). Binning the top-25\% sky pixels
+by flash $B$ digital number reveals two systematic instrumental effects:
+(a)~under sRGB linearization, $R/G$ drifts upward by $+6.3\%$ from $0.982$ at
+$B_{\rm DN}\approx 182$ to $1.044$ at $B_{\rm DN}\approx 245$. Applying the
+empirical per-channel Camera Response Function (CRF) independently calibrated
+for this exact Elgato Facecam~4K from daytime exposure brackets in the
+monitor's flat-field pipeline ($L_c(x)\propto [(x+a_c)/(1+a_c)]^{\gamma_c}-c_{0,c}$
+with $(a,\gamma)_R=(0.36,3.2)$, $(0.45,3.8)_G$, $(0.55,3.8)_B$, anchored
+neutral at DN~180) flattens that drift completely to $R/G = 1.026$--$1.037$
+across the entire unclipped sky (and produces the same flattening on daytime
+overcast skies in \code{science.csv}), yielding top-25\% CRF ratios
+$R/G=1.030$, $B/G=1.905$. (b)~Above $B_{\rm DN}\approx 220$, $B/G$ rolls off
+monotonically under \emph{both} sRGB ($1.919\to 1.754$) and the empirical CRF
+($1.975\to 1.794$), driven by ISP highlight-shoulder compression and hard
+clipping ($1.04\%$ of top-25\% pixels reach $B\ge 254$, rising to $11.6\%$ in
+the top-5\% central sky). Restricting to the unclipped, below-shoulder sky
+($170\le B_{\rm DN}<215$) gives $R/G=0.997$, $B/G=1.914$ (sRGB) or
+$R/G=1.027$, $B/G=1.969$ (CRF). Thus the true flash-only ratios lie tightly in
+$R/G\approx 1.00$--$1.03$ and $B/G\approx 1.85$--$1.97$.
+
+Fourth, the Elgato Facecam~4K uses a CMOS rolling shutter (readout time
+$\sim$17--33~ms at 4K), so a millisecond-scale flash could in principle
+illuminate only a horizontal band of rows. Computing the full-frame vertical
+profile of $(I_{\rm flash}-I_{\rm before})$ across all 2160~rows shows smooth,
+continuous illumination from the top cloud deck through the building
+fa\c{c}ades down to the foreground lawn with no exposure-cutoff edge,
+confirming that the flash occurred during the $\sim$70--80~ms
+simultaneous-integration window shared by all rows. Peak sky brightness sits
+near the top edge slightly right of center (columns 50--67\%, camera pointing
+roughly north), placing the flash azimuth toward the north-northeast above the
+horizon.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.96\textwidth]{fig3_radiometry.pdf}
+  \caption{4K pixel-level radiometric diagnostics across the top-25\% sky band
+  of the flash frame, binned by flash blue digital number ($B_{\rm DN}$).
+  (a)~Standard sRGB linearization leaves a $+6.3\%$ brightness-dependent drift
+  in $R/G$, which disappears when linearized with the camera's independently
+  calibrated per-channel empirical CRF. (b)~Both linearizations show monotonic
+  $B/G$ compression above $B_{\rm DN}\approx 220$ from the ISP highlight
+  shoulder and partial blue clipping ($1.04\%$ of the sky band at $B\ge 254$).}
+  \label{fig:radiometry}
+\end{figure}
 
 \section{Physics: the anatomy of the emission}
 \label{sec:physics}
@@ -101,378 +175,470 @@ emits.
 \subsection{The channel}
 A return stroke drives $\sim$30~kA through a centimeter-scale channel,
 shock-heating it to a peak of 28\,000--31\,000~K within microseconds
-\citep{prueitt1963,orville1968,rakovuman2003}. For the first microseconds the
-channel is optically thick and radiates as a quasi-blackbody; it becomes
-transparent (except in strong line cores) as it expands and cools
-\citep{uman1965}. Electron densities inferred from the Stark broadening of
-H$\alpha$ start near $10^{18}\,\mathrm{cm^{-3}}$ and fall an order of
-magnitude within tens of microseconds \citep{uman1964}; the temperature
-falls through $\sim$20\,000~K on the same timescale and reaches
-$\sim$10\,000~K by 50~$\mu$s \citep{orville1968}. A camera exposure of
-100~ms therefore integrates the \emph{entire} thermodynamic history of every
-stroke it catches---and a typical cloud-to-ground flash contains 3--5 strokes
-spread over 200--300~ms \citep{rakovuman2003}, so the frame may hold several.
-This time-integration is the physical origin of the mixture model below, and
-(\S\ref{sec:degeneracy}) of its degeneracy.
+\citep{prueitt1963,orville1968,rakovuman2003}, with high-speed triggered-lightning
+spectroscopy resolving peak temperatures occasionally exceeding 35\,000--40\,000~K
+in the initial sub-microsecond core \citep{walker2017,walker2019}. Electron
+densities inferred from Stark broadening of H$\alpha$ start near
+$10^{18}\,\mathrm{cm^{-3}}$ and fall by an order of magnitude within tens of
+microseconds \citep{uman1964}; temperature falls through $\sim$20\,000~K on
+the same timescale and reaches $\sim$10\,000~K by 50~$\mu$s \citep{orville1968}.
+Crucially, \citet{uman1965} demonstrated that the channel is \emph{optically
+thin} across the visible continuum and most N\,\textsc{ii} lines over nearly
+the entire luminous phase, approaching optical thickness only briefly in the
+initial microsecond core and in strong self-absorbed line cores (such as
+H$\alpha$ and neutral UV/NIR multiplets). A camera exposure of 100~ms
+integrates the entire thermodynamic history of every stroke it catches---and a
+typical cloud-to-ground flash contains 3--5 strokes spread over 200--300~ms
+\citep{rakovuman2003}---so the recorded color is a time- and
+stroke-integrated mixture.
 
 \subsection{The continuum}
-Beneath the lines lies a genuine continuum, dominated not by blackbody
-emission but by two free-electron processes in the transparent plasma:
-free--free bremsstrahlung, electrons scattering in ion fields, and
-free--bound radiative recombination, electrons captured onto H$^+$, N$^+$,
-and O$^+$ \citep{uman1965,zeldovich1966,orvillehenderson1984}. Recombination
-continua carry series-edge structure rather than a Planck shape: the hydrogen
-Balmer continuum jumps at 364.6~nm, just outside the camera passband, while
-the Paschen continuum (captures to $n=3$) spans the entire visible band with
-its edge at 820~nm and an intensity rising toward the blue. The
-\emph{slope} of this continuum depends on the channel's opacity state. While
-optically thick (the first microseconds), it radiates a Planck curve---an
-effective $\lambda^{-3.5}$ across our band at 30\,000~K. Once transparent,
-free--free and free--bound emission follow the much flatter Kramers form,
-$\varepsilon_\lambda \propto \lambda^{-2} e^{-hc/\lambda k T}$, an effective
-$\lambda^{-1.1}$: distinctly redder at the same temperature. The
-time-integrated continuum is an unknown blend of the two phases, so we fit
-the mixture model with each limit and let them bracket the answer
-(\S\ref{sec:fit}). In time-resolved spectra
-the continuum flashes brightest in the first few microseconds, when the
-channel is hottest and densest \citep{orville1968}; its share of the
-\emph{time-integrated} visible energy is the model's $w_c$.
+Beneath the discrete lines lies a genuine continuum, produced in the
+transparent plasma primarily by two free-electron processes: free--free
+bremsstrahlung (electrons scattering in ion fields) and free--bound radiative
+recombination (electrons captured predominantly onto N$^+$ and O$^+$, with
+H$^+$ contributing in humid air) \citep{uman1965,zeldovich1966,orvillehenderson1984}.
+Recombination continua carry series-edge structure (e.g.\ the hydrogen Balmer
+edge at 364.6~nm outside the camera passband and the Paschen continuum across
+the visible below 820~nm, alongside dense N and O recombination continua).
+The spectral \emph{slope} depends strongly on opacity and temperature. In an
+optically thick limit at 30\,000~K, the channel radiates a Planck curve, an
+effective $\lambda^{-3.5}$ slope across 400--700~nm. Once optically thin,
+free--free and hydrogenic free--bound emission between series edges follow the
+much flatter Kramers form, $\varepsilon_\lambda \propto \lambda^{-2}
+e^{-hc/\lambda kT}$: an effective $\lambda^{-1.1}$ at 30\,000~K, flattening
+further to $\lambda^{-0.6}$ at 20\,000~K and $\lambda^{-0.3}$ at 15\,000~K as
+the channel cools. Because the real continuum is optically thin over almost
+all of its luminous lifetime \citep{uman1965}, the Kramers form at
+20\,000--30\,000~K is the physically natural baseline, with the 30\,000~K
+Planck curve serving as the extreme optically-thick blue limit.
 
 \subsection{The atomic lines}
-At channel temperatures ($kT \simeq 2.6$~eV) collisional excitation
-populates levels tens of eV up in singly ionized nitrogen, and the
-N\,\textsc{ii} spectrum dominates the hot phase: multiplets at 399.5, 444.7,
-and 463--464~nm in the blue--violet, with strong members at 500.5~nm and
-568.0~nm \citep{salanave1961,wallace1964,orville1968}. As the channel cools
-these fade and the hydrogen Balmer series takes over: H$\alpha$ 656.3~nm
-peaks tens of microseconds after the current peak and persists longest
-\citep{orville1968}. The hydrogen is not native to dry air---it is stripped
-from water vapor dissociated in and around the channel, which is why
-H$\alpha$ is conspicuously strong when lightning forms in humid air
-\citep{orville1968,rakovuman2003}; the night of August~9 sat at 86--90\%
-surface humidity with drizzle beginning within the half hour. Neutral
-species matter less to our band: the very strong O\,\textsc{i} 777.4~nm
-triplet and N\,\textsc{i} multiplets in the 740--870~nm range fall beyond
-the IR-cut filter, leaving only the weak O\,\textsc{i} 615.8~nm multiplet
-inside the passband. In the model the atomic component is a fixed template:
-Gaussian lines of width $\sigma\simeq2.5$--3~nm (slitless-spectrograph
-scale, standing in for Stark-broadened profiles) with relative energies
-ordered per \citet{orville1968} and \citet{orvillehenderson1984}, H$\alpha$
-strongest.
+At channel temperatures ($kT \simeq 2.6$~eV) collisional excitation populates
+highly excited levels in singly ionized nitrogen (and oxygen), so
+N\,\textsc{ii} dominates the hot phase: multiplets at 399.5, 444.7, and
+463--464~nm in the blue--violet, with prominent lines at 500.5~nm (near the
+peak visible irradiance band of \cite{orvillehenderson1984}) and 568.0~nm
+\citep{salanave1961,wallace1964,orville1968}. As the channel cools, ionized
+lines fade and the hydrogen Balmer series takes over: H$\alpha$ at 656.3~nm
+peaks tens of microseconds after peak current and persists longest
+\citep{orville1968}. Hydrogen is not native to dry air---it is stripped from
+dissociated water vapor, making H$\alpha$ conspicuously strong in humid air
+\citep{orville1968,rakovuman2003}; surface relative humidity on the night of
+August~9 sat at 81--85\% in the local weather feed (86--90\% in reanalysis).
+The strongest neutral emissions (O\,\textsc{i} 777.4~nm and N\,\textsc{i}
+740--870~nm multiplets) fall beyond the camera's IR-cut filter, leaving weak
+O\,\textsc{i} 615.8~nm inside the passband. We represent the atomic component
+with a 10-line core template ($\sigma=2.5$--3~nm Gaussian profiles standing in
+for Stark-broadened multiplets, relative energies ordered per
+\cite{orville1968,orvillehenderson1984}, H$\alpha$ strongest) and test sensitivity against both an expanded 22-line literature template
+(adding H$\gamma$, H$\delta$, and secondary blue N\,\textsc{ii}/O\,\textsc{ii}
+multiplets) and an H$\alpha$-ablated template with 656.3~nm removed.
 
 \subsection{The molecular bands}
 \label{sec:molecular}
-The third component is molecular: the \Ntp{} first-negative system
-($B^2\Sigma_u^+ \to X^2\Sigma_g^+$), with bandheads at 391.4, 427.8, and
-470.9~nm \citep{salanave1962,orville1968}. Exciting it requires ionizing
-N$_2$ (15.6~eV) and lifting the ion a further $\sim$3~eV---conditions met
-not in the fully dissociated return-stroke core, where little N$_2$
-survives, but in the cooler periphery: the corona sheath around the channel,
-leader and streamer processes, and the recombining afterglow
-\citep{orville1968,rakovuman2003}. These are the same bands that color the
-blue--violet fringe of aurorae, where the 427.8~nm line is the standard
-photometric reference. Their presence in a time-integrated flash spectrum is
-therefore expected; what the present measurement adds is a \emph{weight}:
-the color demands that 12--21\% of the visible energy reaching the camera
-came from this violet system, the range set by the continuum-shape limits
-of \S\ref{sec:fit}.
+A third possible visible component is molecular: the \Ntp{} first-negative
+system ($B^2\Sigma_u^+ \to X^2\Sigma_g^+$), with bandheads at 391.4, 427.8,
+and 470.9~nm \citep{salanave1962,wallace1964,orville1968}. Exciting it
+requires ionizing N$_2$ (15.6~eV) and lifting the ion a further $\sim$3.2~eV,
+conditions found not in the fully dissociated return-stroke core---where
+slitless and high-speed triggered-lightning spectrographs consistently find
+\Ntp{} bands weak or absent \citep{salanave1962,walker2017,walker2019}---but
+in cooler peripheral regions: the corona sheath, stepped leaders, streamers,
+and intracloud discharges \citep{wallace1964,orville1968,rakovuman2003}.
+Whether a broadband camera pixel \emph{requires} a large \Ntp{} fraction turns
+out to hinge critically on modeling the camera's color pipeline accurately.
 
-\subsection{The mixture model and the fit}
+\subsection{Archive validation, the mixture model, and the closure test}
 \label{sec:fit}
+An essential check before inverting lightning color is whether the assumed
+camera model reproduces \emph{known-spectrum} skies recorded by the exact same
+instrument under the exact same locked 5600~K white balance. Extracting
+high-sun reference frames from \code{science.csv} gives two clean daytime
+calibration anchors (Table~\ref{tab:validation}):
+\begin{itemize}\itemsep2pt
+  \item \emph{Overcast sky} ($n=481$, solar elevation $>45^\circ$, cloud cover
+  $\ge 95\%$): median DN $(163,179,207)$, sRGB-linearized $R/G=0.845$
+  (IQR $0.80$--$0.87$), $B/G=1.317$ (IQR $1.28$--$1.36$).
+  \item \emph{Clear blue sky} ($n=288$, solar elevation $>50^\circ$, cloud
+  cover $\le 5\%$): median DN $(93.5,134,189)$, sRGB-linearized $R/G=0.479$
+  (IQR $0.44$--$0.61$), $B/G=2.189$ (IQR $1.79$--$2.30$).
+\end{itemize}
+
+This archive test exposes a major error in comparing linearized sRGB pixels
+directly to raw, un-matrixed Bayer channel integrals (as done in earlier
+versions of this analysis). Consumer Bayer filters overlap strongly across
+wavelength; raw white-balanced Bayer RGB is therefore severely desaturated.
+Every real camera ISP applies a $3\times 3$ color-correction matrix (CCM) with
+negative off-diagonal terms to transform raw sensor RGB into standard linear
+sRGB (approximating the CIE~1931 color-matching functions adapted from 5600~K
+to D65). As Table~\ref{tab:validation} and Fig.~\ref{fig:spectrum}b show,
+un-matrixed Gaussian Bayer sensitivities fail the daytime archive test
+catastrophically: even an 85\% Rayleigh clear blue sky reaches only
+$B/G=1.67$ (and 100\% Rayleigh only $1.81$), unable to reach the measured
+clear-sky median of $2.19$. Restoring either a least-squares
+white-point-preserving $3\times 3$ CCM on the exact same Bayer Gaussians
+(Bayer$+$CCM) or the sensor-independent CIE-sRGB pipeline immediately
+reproduces clear blue sky ($B/G=2.15$--$2.17$) and overcast sky ($B/G=1.16$ at
+nominal 5600~K, rising to $1.26$--$1.34$ if effective WB sits near 5200~K or
+overcast CCT near 7000~K).
+
+\begin{table}[t]
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{4.5pt}
+  \caption{Camera-pipeline validation against the monitor's own daytime archive
+  (fixed WB~5600~K) and resulting 3-component lightning mixture solves for the
+  flash ($R/G=1.028$, $B/G=1.854$, 3~km Rayleigh). Un-matrixed Bayer fails on
+  clear blue sky and forces a spurious 12--19\% \Ntp{} requirement; restoring
+  the CCM (or CIE-sRGB) matches daytime skies and favors optically thin Kramers
+  continuum with weak or zero \Ntp{}. Negative weights (\emph{infeasible})
+  indicate the target lies outside the non-negative simplex.}
+  \label{tab:validation}
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    Camera pipeline & Overcast & Clear sky & Planck 30\,kK $+$ Atom & Kramers 30\,kK $+$ Atom \\
+    & $(R/G,\,B/G)$ & $(R/G,\,B/G)$ & $(w_c,\,w_a,\,w_m)$ & $(w_c,\,w_a,\,w_m)$ \\
+    \midrule
+    Archive measured (sRGB) & $(0.845,\,1.317)$ & $(0.479,\,2.189)$ & --- & --- \\
+    \midrule
+    Bayer, no CCM (5600~K) & $(0.931,\,1.106)$ & $(0.671,\,1.672)$ & $(0.20,\,0.68,\,0.12)$ & $(0.25,\,0.57,\,0.19)$ \\
+    Bayer $+$ CCM (5600~K) & $(0.901,\,1.156)$ & $(0.562,\,2.151)$ & $(0.65,\,0.42,\,-0.07)$ & $(0.80,\,0.05,\,0.14)$ \\
+    CIE-sRGB (5600~K)      & $(0.905,\,1.160)$ & $(0.565,\,2.166)$ & $(0.18,\,0.94,\,-0.12)$ & $(0.57,\,0.38,\,0.05)$ \\
+    CIE-sRGB (5200~K cal.) & $(0.851,\,1.260)$ & $(0.515,\,2.347)$ & $(0.07,\,1.10,\,-0.16)$ & $(0.19,\,0.91,\,-0.10)$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 We model the time- and stroke-integrated spectral energy distribution as
 \begin{equation}
-  S(\lambda) \;=\; w_c\,\hat{B}_{30\,000\,\mathrm{K}}(\lambda)
+  S(\lambda) \;=\; w_c\,\hat{C}(\lambda)
   \;+\; w_a\,\hat{L}_{\rm atomic}(\lambda)
   \;+\; w_m\,\hat{L}_{\mathrm{N}_2^+}(\lambda),
   \qquad w_c+w_a+w_m=1,
 \end{equation}
-each term normalized to unit visible energy, with $\hat{B}$ taken in turn as
-the Planck and Kramers limit of \S2.2. The camera model
-(\S\ref{sec:engineering}) converts $S(\lambda)$ to white-balanced linear
-RGB. Fitting the weights to the two measured ratios of Eq.~\eqref{eq:meas}
-yields, in the Planck limit,
-\begin{equation}
-  (w_c, w_a, w_m) = (0.22,\, 0.66,\, 0.12)
-  \;\;\longrightarrow\;\;
-  R/G = 1.017,\quad B/G = 1.845,
-\end{equation}
-reproducing the observed sky pixel to one digital number: modeled
-$(172,170,222)$ versus measured $(172,170,223)$ (Fig.~\ref{fig:spectrum}).
-In the Kramers limit the best fit is $(0.25, 0.56, 0.19)$, equally exact.
-Three structural conclusions survive the (real) degeneracies. First, the
-molecular fraction is required at $w_m=0.11$--$0.15$ (Planck) to
-$0.17$--$0.21$ (Kramers): atomic lines plus continuum saturate at
-$B/G \lesssim 1.73$ under daylight balance---indeed an infinitely hot
-blackbody only reaches $B/G \approx 1.88$---so the violet molecular bands
-are required, not decorative, under either continuum. Second, the continuum
-is bounded, $w_c \lesssim 0.26$ (Planck) to $0.33$ (Kramers), consistent
-with the line-dominated character of time-integrated stroke spectra
-\citep{orville1968}. Third, the red side is independently diagnostic:
-$R/G>1$ cannot be produced by the blue-heavy continuum and requires
-H$\alpha$ at full literature strength---the wet-air line. Lavender,
-decomposed: nitrogen's blue--violet ions and molecules at one end,
-hydrogen's red at the other, and the green channel left as the local
-minimum between them.
+with each template normalized to unit visible energy over 380--720~nm and
+propagated through neutral cloud diffusion plus clear-air Rayleigh extinction
+(\S\ref{sec:engineering}). For any fixed set of three templates, the
+normalization constraint leaves \emph{two} free weights against \emph{two}
+measured chromatic ratios---zero degrees of freedom, a unique linear solve
+rather than an over-determined fit. The closure test still carries real
+falsification power because the non-negative simplex ($w_i\ge 0$) occupies
+only a small wedge of the $(R/G,B/G)$ plane (Fig.~\ref{fig:spectrum}b).
 
-A note on counting is owed here. The camera records three numbers, but
-overall brightness carries no source information (stroke energy, distance,
-and diffusion losses are unknown), leaving \emph{two} chromatic observables.
-Against them the frozen-shape model spends two free weights: zero degrees of
-freedom---a solve, not a fit. Freeing the continuum shape between its
-physical limits adds a third unknown, and the problem becomes formally
-under-determined; the $w_m$ bracket above \emph{is} that one-parameter
-family made explicit. The individual line amplitudes were never fitted at
-all: ten amplitudes against zero residual degrees of freedom are imported
-as fixed templates from time-resolved slit spectroscopy
-\citep{orville1968,orvillehenderson1984}, where hundreds of spectral
-channels do the decomposing. Our two ratios only adjudicate the mixture of
-three frozen templates. The closure test retains power despite zero degrees
-of freedom because the feasible set is small: no non-negative mixture of
-these templates, under any continuum limit, can reach (say) $B/G = 2.5$ or
-$R/G = 1.3$---the measurement could have landed outside the reachable
-region and falsified the model. It landed inside.
+Restoring the CCM reverses one headline conclusion of earlier versions while
+sharpening two others:
+\begin{enumerate}\itemsep3pt
+  \item \emph{\Ntp{} is permitted ($0$--$14\%$), not required.} In the
+  un-matrixed Bayer model, omitting the CCM depressed 30\,000~K Planck from
+  $B/G=2.10$ down to $1.64$ and atomic lines from $2.22$--$2.62$ down to
+  $1.56$, artificially placing both below the measured $1.85$ and forcing
+  $w_m=0.12$--$0.19$ solely to make up for the missing matrix. Under the
+  validated CIE-sRGB (5600~K) pipeline with an optically thin 30\,000~K
+  Kramers continuum and the core atomic template, the exact solve is
+  \begin{equation}
+    (w_c,\,w_a,\,w_m) = (0.57,\,0.38,\,0.05)
+    \;\;\longrightarrow\;\;
+    R/G = 1.028,\quad B/G = 1.854,
+  \end{equation}
+  reproducing the observed sky band to within 1~DN ($(173,171,224)$ vs.\
+  $(172,170,223)$; Fig.~\ref{fig:spectrum}a). Under empirical CRF
+  linearization ($B/G=1.905$), $w_m=0.07$; under Bayer$+$CCM with the core
+  template $w_m=0.14$, while with the expanded 22-line atomic template or an
+  overcast-calibrated 5200~K WB, $w_m$ drops to $0$ (Table~\ref{tab:validation}).
+  This brings the single-pixel color into full agreement with return-stroke
+  spectroscopy, where \Ntp{} is weak or absent in the hot channel
+  \citep{salanave1962,walker2017,walker2019}.
+
+  \item \emph{Optically thin (and/or cooling) continuum is favored over
+  30\,000~K Planck.} Under CIE-sRGB and Bayer$+$CCM at 5600~K (3~km Rayleigh),
+  both 30\,000~K Planck ($B/G=2.10$) and the atomic line template
+  ($B/G=2.22$--$2.62$) lie \emph{above} the measured flash ($B/G=1.85$--$1.97$;
+  Fig.~\ref{fig:spectrum}b). No non-negative mixture of 30\,000~K Planck,
+  atomic lines, and \Ntp{} can lower $B/G$ to the measurement unless either
+  the continuum is optically thin Kramers ($B/G=1.13$--$1.25$ at
+  20\,000--30\,000~K), as established by \citet{uman1965}, or atmospheric path
+  reddening is substantially stronger than 3~km (at 10~km Rayleigh path,
+  30\,000~K Planck drops to $B/G=1.84$--$1.86$).
+
+  \item \emph{H$\alpha$ (656.3~nm) is strictly required.} Removing H$\alpha$
+  from the atomic template collapses its red ratio from $R/G=1.24$ to $0.36$
+  in CIE-sRGB (and $1.90\to 0.26$ in Bayer$+$CCM, $1.19\to 0.55$ without CCM).
+  Every hot continuum also sits below unity ($R/G=0.60$ Planck, $0.91$ Kramers
+  30\,000~K, $0.98$ Kramers 20\,000~K), and \Ntp{} sits in the violet with
+  negligible red energy. No non-negative mixture without H$\alpha$ can cross
+  $R/G=1$ under \emph{any} camera pipeline (Fig.~\ref{fig:spectrum}b). The
+  lavender hue is genuinely built from nitrogen's blue--violet ions (and hot
+  continuum) at one end and humid-air hydrogen's red H$\alpha$ at the other,
+  with the green channel left as the local minimum between them.
+\end{enumerate}
 
 \begin{figure}[t]
   \centering
-  \begin{subfigure}[b]{0.635\textwidth}
+  \begin{subfigure}[b]{0.565\textwidth}
     \includegraphics[width=\textwidth]{fig2a.pdf}
     \caption{}
   \end{subfigure}\hfill
-  \begin{subfigure}[b]{0.345\textwidth}
+  \begin{subfigure}[b]{0.425\textwidth}
     \includegraphics[width=\textwidth]{fig2b.pdf}
     \caption{}
   \end{subfigure}
-  \caption{(a) The best-fit emission model on a log--linear scale, with
-  every line labeled: the 30\,000~K Planck continuum (dashed), the \Ntp{}
-  first-negative component (dotted), and the approximate camera channel
-  sensitivities---red, green, and blue curves---including the 670~nm IR-cut
-  edge (panel drawn in IDL~9.0). (b) Measured versus modeled white-balanced
-  linear color, normalized to $G=1$.}
+  \caption{(a)~Best-fit CIE-sRGB emission model on a log--linear scale
+  ($(w_c,w_a,w_m)=(0.57,0.38,0.05)$ with 30\,000~K optically thin Kramers
+  continuum), with every modeled line labeled alongside the approximate Bayer
+  passbands (670~nm IR-cut, 398~nm UV edge). (b)~Colorimetric closure and
+  archive validation in linear $(R/G,B/G)$ space. Archive clear blue sky
+  ($n=288$, blue triangle) refutes the un-matrixed Bayer model (red cross and
+  dotted ceiling) and validates CIE-sRGB (open blue triangle). In CIE-sRGB,
+  Planck 30\,kK $+$ Atomic (dashed) is too blue, while Kramers 30\,kK $+$
+  Atomic ($w_m=0$, solid purple) passes beside all three flash estimates
+  (top-25\% sRGB star, empirical CRF diamond, unclipped sky open circle; shaded
+  wedge adds $w_m\le 0.15$). Removing H$\alpha$ (red dot) makes $R/G>1$
+  unreachable.}
   \label{fig:spectrum}
 \end{figure}
 
-\subsection{Breaking the degeneracy}
+\subsection{Breaking the remaining degeneracies}
 \label{sec:degeneracy}
-Three weights against two color ratios leave a one-parameter family: the
-data cannot distinguish trading continuum against atomic-line energy, because
-both are broadband compared to the camera channels. The degeneracy is not
-fundamental, and several escapes are available, in roughly ascending order
-of effort. \emph{(i) Priors.} Time-resolved spectrophotometry already bounds
-the continuum share of visible stroke energy at the 10--25\% level
-\citep{orville1968,orvillehenderson1984}; adopting that as a prior collapses
-the family to $w_c\approx0.15$--0.25 without new hardware.
-\emph{(ii) In-scene calibration.} The high-pressure-sodium streetlamps in
-the same frame have a known, strongly structured spectrum (self-reversed
-Na~D core plus scandium and mercury lines); photographing them---and a
-reference color chart---through the production pipeline would measure the
-effective channel curves and color matrix of this specific unit, removing
-the systematic that currently dominates (\S\ref{sec:holes}), and tightening
-the family. \emph{(iii) A fourth band.} Any additional, spectrally distinct
-measurement over-determines the mixture: a second camera with different
-(characterized) sensitivities, or two narrowband filters---one at 427.8~nm
-for the molecular system, one at 656~nm for H$\alpha$---turn $w_m$ and the
-H$\alpha$ amplitude into direct photometry. \emph{(iv) Time resolution.}
-The components have distinct decay clocks: continuum and N\,\textsc{ii} die
-in tens of microseconds, H$\alpha$ persists, molecular emission rides the
-afterglow and any continuing current. Even 1000~fps video---1~ms bins---
-would separate the hot-phase blend from the afterglow and split $w_c$ from
-$w_a$ by lever arm on time rather than wavelength. \emph{(v) Ensembles.}
-Across many flashes at varying (unknown) distances, the emission mixture is
-approximately common while Rayleigh path-reddening scales with distance;
-regressing observed colors across an ensemble separates source chromaticity
-from propagation, calibrating the term we currently assume.
-\emph{(vi) The grating.} A blazed transmission grating over a spare camera
-makes the monitor a slitless spectrograph, and one storm's worth of frames
-would replace this entire section with a measurement.
+Although three frozen templates against two ratios yield zero formal degrees
+of freedom, the physical inversion remains under-determined once continuum
+temperature and opacity, atomic line ratios, extinction path length, and the
+unit's exact CCM and IR-cut edge are allowed to vary. Several escapes are
+available, in ascending order of effort:
+\emph{(i)~Time-resolved priors.} Spectrophotometry constrains typical
+return-stroke continuum and line ratios across stroke phases
+\citep{orville1968,orvillehenderson1984,walker2019}.
+\emph{(ii)~Completing in-scene calibration.} Here we used the daytime sky
+archive and bracket-derived empirical CRF to validate the CCM and retire the
+sRGB tone-curve bias; photographing a Macbeth ColorChecker and fitting the
+in-scene high-pressure-sodium streetlamps (whose halos already sit in the
+baseline frame at $R/G=1.84$, $B/G=0.08$) would directly measure this unit's
+CCM and exact 656~nm red transmission.
+\emph{(iii)~A fourth band.} Narrowband filters centered at 427.8~nm (\Ntp{})
+and 656.3~nm (H$\alpha$), or a second camera with a steeper 650~nm IR-cut,
+turn $w_m$ and H$\alpha$ into direct photometry.
+\emph{(iv)~Time resolution.} Continuum and N\,\textsc{ii} decay in tens of
+microseconds, H$\alpha$ persists longer, and molecular bands ride leaders and
+continuing currents; even 1000~fps video separates hot strokes from continuing
+afterglows.
+\emph{(v)~Ensembles.} Across many flashes at varying distances (ideally paired
+with lightning-location network ranges), regressing chromaticity against range
+separates intrinsic source color from Rayleigh and aerosol path reddening.
+\emph{(vi)~A transmission grating.} Placing a blazed grating over a spare
+camera converts the monitor into a slitless spectrograph, replacing template
+inversion with a direct spectrum.
 
 \section{Engineering: cloud, air, and silicon}
 \label{sec:engineering}
-\textbf{Water.} The flash reached the camera by diffusion through the
+\textbf{Water and air.} The flash reached the camera by diffusion through the
 overcast deck. Cloud droplets ($\sim$10~$\mu$m) scatter visible light in the
-geometric-optics regime with single-scatter albedo $\approx 1$ and negligible
-wavelength dependence; multiple scattering randomizes direction and smears
-time (by tens of microseconds per kilometer of diffusion path) but is nearly
-chromatically neutral \citep{thomasonkrider1982,koshak1994,bohren1987}.
-Liquid and vapor-phase water absorption in the visible is weak (the red-band
-overtones are orders of magnitude too small over these path lengths). The
-deck therefore acts as a large neutral diffuser: it preserves chromaticity
-while converting a point stroke into hemispheric illumination---and, by
-admixing multiply-scattered white light, desaturates it, which is why the
-lavender is pale. We include one chromatic propagation term: Rayleigh
-extinction over an assumed 3~km effective clear-air path,
-$\tau(\lambda)=0.036\,(550/\lambda)^4$, a few-percent reddening.
+geometric-optics regime with single-scatter albedo $\omega_0\approx 1$ and
+negligible wavelength dependence; multiple scattering randomizes direction
+and smears arrival time (by tens of microseconds per kilometer of diffusion
+path) while remaining nearly chromatically neutral
+\citep{thomasonkrider1982,koshak1994,bohren1987}. Liquid- and vapor-phase
+water absorption across 400--700~nm is negligible over these path lengths.
+Importantly, lossless elastic scattering by a neutral cloud deck at midnight
+cannot manufacture white light to desaturate the flash (ambient skyglow is
+dim sodium-amber, $40\times$ fainter than the flash): the cloud preserves the
+source chromaticity, and the lavender is pale (CIE excitation purity
+$\approx 23\%$) purely because the lightning spectrum itself is broadband.
+Between the cloud deck and the camera we include clear-air Rayleigh extinction
+over an assumed 3~km effective path, $\tau(\lambda)=0.036\,(550/\lambda)^4$,
+and note that a more distant cell ($\sim$10~km path, or humid summer boundary-layer
+aerosols) adds stronger blue attenuation that shifts the inferred continuum
+toward the bluer Planck side (\S\ref{sec:fit}).
 
-\textbf{Silicon.} The camera (Elgato Facecam~4K, Sony STARVIS~2 sensor) is
-operated with every automatic control disabled: manual exposure, manual
-gain, white balance fixed at 5600~K. We model Bayer sensitivities as
-Gaussians (B: 455/38~nm, G: 535/45~nm, R: 612/48~nm) within the family of
-measured consumer-camera response functions \citep{jiang2013}, multiplied by
-a 670~nm IR-cut and 398~nm UV edge; white-balance gains are defined so a
-5600~K Planck source renders neutral. Because the WB is locked, the
-$\sim$30\,000~K-class source renders honestly blue instead of being
-neutralized---the instrumental design choice that makes this measurement
-possible. Measured JPEG values are linearized with the sRGB transfer
-function \citep{iec1999} and baseline-subtracted in linear space. The red
-channel's retained sensitivity at 656~nm ($\sim$0.66 of peak) is what lets
-H$\alpha$ lift $R$ to parity with $G$; a camera with an aggressive 650~nm
-IR-cut would have rendered this flash noticeably bluer.
+\textbf{Silicon and ISP.} The camera (Elgato Facecam~4K, Sony STARVIS~2
+IMX678-class BSI CMOS sensor) is operated in manual exposure and gain with
+white balance fixed at 5600~K. We approximate the raw Bayer passbands as
+Gaussians (B:~455/38~nm, G:~535/45~nm, R:~612/48~nm) within the
+\citet{jiang2013} camera family, multiplied by a 670~nm IR-cut and 398~nm UV
+edge. At H$\alpha$ (656.3~nm), the Gaussian red curve ($0.653$) times the
+IR-cut transmission ($0.907$) retains $0.59$ of peak sensitivity---high enough
+for H$\alpha$ to lift $R$ to parity with $G$, whereas a sharper 650~nm IR-cut
+would render the flash noticeably bluer. As demonstrated in \S\ref{sec:fit},
+two ISP stages beyond raw Bayer integration are indispensable: (1)~the
+$3\times 3$ CCM that decorrelates the overlapping Bayer filters into linear
+sRGB, and (2)~the nonlinear per-channel tone curve, whose empirical calibration
+(\S\ref{sec:obs}) eliminates brightness-dependent $R/G$ drift and exposes the
+highlight shoulder above DN~220.
 
 \section{Meteorology}
-The synoptic context was a warm, saturated boundary layer: 100\% overcast at
-2500--3000~m, 86--90\% surface humidity, with reanalysis showing drizzle
-beginning exactly at the top of the hour \citep{hersbach2020}. No
-thunderstorm code appears at the grid point---the flash likely came from an
-isolated convective cell embedded in, or behind, the stratiform deck, of the
-kind reanalysis routinely smooths away. Three faint blue excursions across
-30 minutes suggest a small cell passing at distance. The wet-season
-signature matters twice over: the humid air fed the H$\alpha$ line
-(\S\ref{sec:physics}), and the low deck provided the projection screen. The
-event is also a one-frame advertisement for fixed-exposure urban sky
-monitoring: a 100~ms exposure every 300~s is a 1-in-3000 duty cycle, yet
-over a season of nights even rare transients---lightning, fireworks,
-aurora---will land in frames whose radiometry is interpretable after the
-fact.
+The synoptic context was a warm, humid, overcast boundary layer. In the
+monitor's local weather log (\code{science.csv}), Pittsburgh sat at
+73--74$^\circ$F, 94--100\% overcast, and 81--85\% surface relative humidity
+across 00:00--01:00~EDT (rising to 94\% by 01:44~EDT), with light drizzle
+already noted at 23:29~EDT; ERA5 reanalysis similarly places a saturated low
+overcast deck (86--90\% surface humidity) and regional drizzle over the area
+without flagging a grid-point thunderstorm \citep{hersbach2020}. The flash
+almost certainly came from an isolated convective cell embedded within or
+beyond the stratiform deck, of the sub-grid scale reanalysis routinely smooths
+away. Two weaker blue sky excursions at 00:33 and 00:39~EDT (22 and 28~minutes
+after the main frame) are consistent with the same small cell passing at
+greater distance. The humid overcast mattered twice: abundant water vapor fed
+the mandatory H$\alpha$ line (\S\ref{sec:fit}), and the low cloud deck
+provided the hemispheric projection screen. The capture is also a one-frame
+demonstration of fixed-exposure urban sky monitoring: a 100~ms exposure every
+$\sim$326~s is a $\sim$1-in-3260 duty cycle, yet over a season of nights even
+brief transients land in frames whose radiometry remains quantitatively
+interpretable after the fact.
 
-\section{N\,\textsc{ii}, \Ntp{}, and the ecosystem: the fertilizer in the
-spectrum}
+\section{\texorpdfstring{N\,\textsc{ii}, \Ntp{}, and the ecosystem: the fertilizer in the spectrum}{N II, N2+, and the ecosystem: the fertilizer in the spectrum}}
 \label{sec:ecosystem}
-The nitrogen spectrum of the flash is not just a curiosity; it points at
-the atmosphere's strongest natural machine for breaking the N$\equiv$N
-triple bond. That bond, at 9.8~eV, is why nitrogen---the most abundant
-element in the atmosphere---is the limiting nutrient of most ecosystems:
-molecular N$_2$ is biologically inert until something tears it open.
-Lightning runs two factories that do, and our one pixel carries a
-certificate from each.
+The nitrogen emission of the flash points at the atmosphere's strongest
+natural machine for breaking the N$\equiv$N triple bond. At 9.8~eV, that bond
+is why nitrogen---the most abundant element in the atmosphere---remains a
+limiting nutrient across ecosystems until something tears it open. Lightning
+operates two distinct plasma regimes that break N$_2$, and our spectrum speaks
+to both.
 
-The first factory is thermal, and its certificate is the \emph{atomic}
-spectrum. Every N\,\textsc{ii} photon attests that an N$\equiv$N bond was
-fully broken and the fragment ionized besides---and at $w_a\simeq0.6$ the
-dissociation signal is not a garnish on the flash but most of its light.
-The fixing, however, happens elsewhere, and in the dark. In the
-$\sim$30\,000~K core nothing can be kept: nitric oxide formed there
-re-equilibrates away. It is the 2000--4000~K cooling shell and mixing zone
-that runs the Zel'dovich chain
-($\mathrm{O_2 + N \rightleftharpoons NO + O}$ and its partner reaction),
-freezing NO out of equilibrium as the gas cools
-\citep{zeldovich1966,borucki1984}---and that shell is spectroscopically
-silent: too cool to excite the visible N\,\textsc{ii} or near-infrared
-N\,\textsc{i} lines, while the one low-lying transition of the crucial
-metastable reagent, the [N\,\textsc{i}] 520~nm doublet of N($^2$D), is
-collisionally quenched at tropospheric density (it is an aurora and
-nightglow line precisely because it needs near-vacuum). The core that
-shines does not fix; the shell that fixes does not shine.
+The dominant factory is thermal, and its optical certificate is the
+\emph{atomic} spectrum. Every N\,\textsc{ii} photon attests that an
+N$\equiv$N bond was broken and the fragment ionized besides. The actual
+fixing, however, happens in the dark. In the $\sim$30\,000~K core, nitric oxide
+cannot survive: it rapidly re-equilibrates back to N$_2$ and O$_2$ as the gas
+expands. It is the 2000--4000~K cooling shock shell and turbulent mixing zone
+that runs the thermal Zel'dovich chain
+($\mathrm{O + N_2 \rightleftharpoons NO + N}$ and
+$\mathrm{N + O_2 \rightleftharpoons NO + O}$, operating on ground-state
+$\mathrm{N(^4S)}$), freezing NO out of equilibrium as the gas cools below
+$\sim$2500~K \citep{zeldovich1966,borucki1984}. That shell is
+spectroscopically silent in the visible: far too cool to excite N\,\textsc{ii}
+or near-infrared N\,\textsc{i} lines, while low-lying forbidden atomic
+transitions (such as the [N\,\textsc{i}] 520~nm doublet of metastable
+$\mathrm{N(^2D)}$) are both Boltzmann-suppressed in thermal gas and
+collisionally quenched at tropospheric pressure. The core that shines does not
+fix; the shell that fixes does not shine.
 
-The second factory is cold, and it is the one the violet bands advertise.
-\Ntp{} is an intact molecule---ionization barely weakens the bond (order
-2.5, 8.7~eV)---so a 427.8~nm photon certifies ionization, not
-dissociation. But in cool plasma the dominant fate of \Ntp{} is
-dissociative recombination, $\mathrm{N_2^+ + e^- \to N + N}$, branching
-heavily to the metastable N($^2$D), whose reaction with O$_2$ yields
-NO---the sequence that makes aurorae the nitric-oxide factory of the
-thermosphere \citep{rees1989,barth1992}. That pathway operates exactly
-where our molecular emission originates (the corona sheath, streamers, and
-recombining afterglow, \S\ref{sec:molecular}), so the violet 12--21\% marks
-a real if minority fixation channel: the opening move of the auroral
-mechanism, running in the storm's cold plasma.
+The second regime is cold, non-equilibrium plasma---the corona sheath,
+leaders, and streamers where any \Ntp{} first-negative emission originates
+(\S\ref{sec:molecular}). Ionizing N$_2$ to \Ntp{} leaves the molecule intact
+(bond order 2.5, dissociation energy 8.7~eV). In the tenuous thermosphere,
+dissociative recombination ($\mathrm{N_2^+ + e^- \to N + N}$, branching
+heavily to metastable $\mathrm{N(^2D)}$, which reacts rapidly with O$_2$ to
+form NO) turns aurorae into a major upper-atmospheric NO source
+\citep{rees1989,barth1992}. In dense 1-atm tropospheric air, however, ion
+kinetics shift sharply: three-body clustering
+($\mathrm{N_2^+ + N_2 + M \to N_4^+ + M}$) and rapid charge transfer to
+lower-ionization-potential oxygen
+($\mathrm{N_2^+/N_4^+ + O_2 \to O_2^+ + N_2}$) occur within nanoseconds,
+outcompeting direct \Ntp{} dissociative recombination by orders of magnitude.
+Cold-plasma nitrogen fixation in tropospheric streamers and corona therefore
+proceeds mainly via direct electron-impact dissociation of neutral N$_2$
+($\mathrm{e^- + N_2 \to e^- + N + N}$), with any \Ntp{} violet emission
+serving as an energetic-electron tracer of that cold-plasma envelope rather
+than the primary chemical intermediate itself. Our revised upper bound
+($w_m \le 0.14$, compatible with zero) aligns with the global NO$_x$ budget,
+which is overwhelmingly dominated by the hot-channel thermal factory.
 
-The budget belongs to the thermal factory. A single flash fixes of order
-kilograms of nitrogen; globally, lightning contributes roughly
-2--8~Tg~N~yr$^{-1}$, several percent of all natural fixation and the
-dominant source of NO$_x$ in the free troposphere, where it regulates
-ozone production \citep{borucki1984,schumann2007}. Before biological
-nitrogenase evolved, such abiotic channels were the biosphere's nitrogen
-supply; models of the Archaean atmosphere suggest declining CO$_2$ would
-have throttled lightning fixation severely enough to constitute a nitrogen
-crisis for early life \citep{navarrogonzalez2001}. The NO oxidizes to
+That budget is ecologically substantial. A single flash fixes of order a few
+kilograms of nitrogen; globally, lightning produces roughly
+2--8~Tg~N~yr$^{-1}$, several percent of natural fixation and the dominant
+source of NO$_x$ in the free troposphere, where it regulates ozone production
+\citep{borucki1984,schumann2007}. Before biological nitrogenase evolved, such
+abiotic channels supplied early life; models of the Archaean atmosphere
+suggest declining CO$_2$ could have throttled lightning fixation severely
+enough to create a nitrogen crisis \citep{navarrogonzalez2001}. In the
+modern atmosphere, lightning NO oxidizes within minutes via ozone to
 NO$_2$---observed as column enhancements under storms since
-\citet{noxon1976}---then to nitric acid, and rains out as nitrate. The
-drizzle that began nineteen minutes after our frame carried that night's
-nitrate down onto the lawns in the image foreground---the same lawns whose
-green chromatic coordinate this instrument logs daily as a phenology
-metric. The monitor, in one frame, photographed its own fertilization, and
-the frame is signed by both factories in their budget order: two-thirds
-atomic certificate, one-eighth-to-one-fifth violet.
+\citet{noxon1976}---and then, over timescales of hours at night (via
+$\mathrm{NO_2 + O_3 \to NO_3}$, $\mathrm{N_2O_5}$ formation, and heterogeneous
+hydrolysis on cloud droplets and aerosols \cite{seinfeld2016}), converts
+to nitric acid and scavenges into precipitation as nitrate. Over the course of
+the wet overnight system, storm-fixed nitrate washed down onto the regional
+watershed and the campus lawns in the image foreground---the same lawns whose
+green chromatic coordinate this instrument logs daily as a phenology metric.
+In a single 100~ms frame, the monitor photographed the atmospheric machinery
+that helps fertilize its own field of view.
 
 \section{Aesthetics and color theory}
-Lavender is a desaturated purple, and purple is the one hue family with no
-spectral wavelength: it exists only as a ratio of the spectrum's two ends
-against a deficit in the middle, on the line of purples that closes the CIE
-diagram \citep{wyszecki1982}. That is precisely the spectrum lightning
-supplies---nitrogen's violet and hydrogen's red bracketing a green
-minimum---which is why lightning has read as violet to observers since long
-before CCDs, and why daylight-balanced film renders it the same way
+In CIE~1931 chromaticity coordinates, the baseline-subtracted flash sits at
+$(x,y)=(0.273,0.261)$: an excitation purity of just $23\%$ and a dominant
+wavelength of $\lambda_d\approx 462$~nm (indigo--blue-violet, right at the
+short-wavelength shoulder of the spectrum locus bordering the non-spectral
+line of purples \cite{wyszecki1982}). Yet physically the flash is not a
+462~nm narrowband source mixed with white light: it is a \emph{metamer},
+built from a broadband continuum plus nitrogen's blue--violet emission at one
+end and hydrogen's red H$\alpha$ at the other, bracketing a green minimum.
+When H$\alpha$ is even stronger (or the continuum redder), lightning pushes
+fully past 380~nm onto the non-spectral line of purples---which is why
+lightning has read as violet or lavender to observers since long before CCDs,
+and why daylight-balanced film renders it the same way
 \citep{minnaert1954,salanave1961}. Goethe, wrong about mechanism and acute
 about phenomenology, placed \emph{Purpur} at the summit of his color system:
 the union of the two intensified poles of his polarity, a color nature
 produces only under extremity \citep{goethe1810}. The lightning spectrum is
-about as literal an enactment of that figure as physics offers---the two
-ends of the visible conspiring against the middle.
+about as literal an enactment of that figure as physics offers---the two ends
+of the visible conspiring against the middle.
 
-The frame's beauty is relational, and here the French tradition earns its
+The frame's beauty is also relational, and here the French tradition earns its
 keep. \citet{chevreul1839}, codifying simultaneous contrast for the Gobelins
 dyers, showed that complementary colors mutually exalt one another; our
 archive applies his law diachronically. The flash frame sits in a season of
-sodium-amber nights (\code{\#1c1808}); amber and violet-blue are near
+sodium-amber nights (\code{\#1c1808}); amber and indigo--violet are near
 complements, so the anomalous frame does not merely differ from its
 neighbors---it negates them, and each makes the other more vivid, the eye
 carrying the remembered amber into the lavender. \citet{albers1963} made the
 same point operational: color is never absolute, and the identical pixel
-triplet pasted into a daylight scene would read as concrete grey.
+triplet pasted into a daylight scene would read as pale cool grey.
 \citet{wittgenstein1977} circles a related puzzle---whatever looks luminous
 cannot look grey---and our sky obliges: values that would be a dull mauve on
 paper look radiant solely because the surround is midnight. As for what the
-photograph \emph{is}: in Barthes's terms the 5678 rows of the season's log
-are \emph{studium}, and the one lavender row is \emph{punctum}, the detail
-that pierces; his \emph{ça-a-été}---the photograph's stubborn
+photograph \emph{is}: in Barthes's terms the thousands of rows of the season's
+log are \emph{studium}, and the one lavender row is \emph{punctum}, the detail
+that pierces; his \emph{\c{c}a-a-\'et\'e}---the photograph's stubborn
 ``that-has-been''---acquires an edge here, because this particular
-that-has-been lasted 100~ms and was witnessed by no one
-\citep{barthes1980}. \citet{merleauponty1945} held that color is not a
-property but an encounter between a lived body and the world; this color
-was encountered by an apparatus alone, and became a percept only in
-retrospect, a memory without a rememberer. \citet{kandinsky1911} heard
-violet as a cooled red, ``morbid, extinguished''---the thermodynamic pun is
-free of charge---and \citet{pastoureau2000} reminds us violet served
-centuries as \emph{demi-deuil}, half-mourning: for a tenth of a second, the
-sky over Pittsburgh wore it.
+that-has-been lasted 100~ms and was witnessed by no one \citep{barthes1980}.
+\citet{merleauponty1945} held that color is not a property but an encounter
+between a lived body and the world; this color was encountered by an apparatus
+alone, and became a percept only in retrospect, a memory without a rememberer.
+\citet{kandinsky1911} heard violet as a cooled red, ``morbid,
+extinguished''---the thermodynamic pun is free of charge---and
+\citet{pastoureau2000,pastoureau2008} reminds us violet (long read as
+\emph{subniger}, half-black) served centuries as \emph{demi-deuil},
+half-mourning: for a tenth of a second, the sky over Pittsburgh wore it.
 
 \section{Holes in the theory}
 \label{sec:holes}
-In decreasing order of concern. (1)~\emph{The ISP is not sRGB.} The camera's
-onboard pipeline applies a proprietary tone curve and color-correction
-matrix; linearizing with the sRGB transfer function is an assumption, and a
-CCM mixes channels post-hoc. The 1-DN agreement should therefore be read as
-consistency, not precision. (2)~\emph{Three weights, two observables.} The
-continuum--atomic split is unidentified; \S\ref{sec:degeneracy} lists the
-escapes, none of which have yet been implemented. (3)~\emph{Channel
-sensitivities are guessed Gaussians} within the plausible family
-\citep{jiang2013}, not measurements of this unit; the H$\alpha$ leverage on
-$R/G$ depends directly on the assumed red response at 656~nm and the IR-cut
-edge. (4)~\emph{The continuum shape is bracketed, not known.} An earlier
-version of this paper called the Planck-versus-recombination distinction
-second order; fitting both limits (\S\ref{sec:fit}) shows it is first order
-for the molecular weight ($w_m$ shifts from $\sim$0.13 to $\sim$0.19)
-though not for any conclusion. The residual assumptions are that the
-time-integrated continuum lies between the limits (a mixture of opacity
-phases does) and that Gaunt factors and series edges smooth out over
-100-nm-wide channels \citep{uman1965,zeldovich1966}. (5)~\emph{Line ratios are stroke-phase
-averages}: a 100~ms exposure integrates hot early emission and the cool
-afterglow in unknown proportion, and our literature amplitudes are typical,
-not universal---flash type (intracloud versus cloud-to-ground), with
-systematically different channel energetics \citep{rakovuman2003}, is itself
-unknown. (6)~\emph{The propagation model is thin}: the 3~km Rayleigh path is
-a guess, and in-cloud diffusion is taken as perfectly neutral. (7)~$n=1$,
-8-bit quantization, JPEG compression, and the assumption that the amber
-baseline adds linearly. Items (1) and (3) could be retired cheaply by the
-in-scene calibration of \S\ref{sec:degeneracy}; item (5) invites the
-grating.
+In decreasing order of remaining concern (after retiring the omitted-CCM
+error, pixel-linearization bias, and uncalibrated tone-curve assumption of
+earlier versions):
+(1)~\emph{Exact unit CCM, white point, and IR-cut.} Daytime archive skies
+validate a colorimetrically accurate sRGB pipeline, but the overcast median
+($B/G=1.32$ vs.\ $1.16$ for 6500~K at nominal 5600~K WB) hints at either a
+slightly cooler effective white balance ($\sim$5200~K), bluer overcast clouds
+($\sim$7000~K), or mild ISP chroma boost; likewise, the exact red response at
+656.3~nm controls how much H$\alpha$ is needed. A reference ColorChecker shot
+would pin down both directly.
+(2)~\emph{Continuum opacity/temperature versus path length.} With two color
+ratios, trading an optically thin Kramers continuum (3~km path) against a
+bluer continuum reddened by a longer clear-air/aerosol path ($\sim$10~km) is
+unresolved without an independent range estimate from a lightning-location
+network.
+(3)~\emph{Stroke-phase and flash-type variation.} Our 100~ms exposure
+integrates hot return-stroke cores and cool afterglows in unknown proportion,
+and flash type (intracloud versus cloud-to-ground) carries systematically
+different spectral energetics \citep{rakovuman2003,walker2019}.
+(4)~\emph{Thin propagation model.} Cloud diffusion is treated as strictly
+achromatic, neglecting weak droplet/aerosol absorption over multi-kilometer
+multiple-scattering paths \citep{thomasonkrider1982}.
+(5)~\emph{Single event and highlight compression.} With $n=1$, 8-bit JPEG
+quantization, and blue-channel highlight roll-off above DN~220
+(Fig.~\ref{fig:radiometry}b), the unclipped sky band carries a $\sim$5\%
+systematic bracket on $B/G$. Item~(1) can be retired cheaply with an in-scene
+color target; items~(2) and (3) invite range-matched flash ensembles or a
+transmission grating.
 
 \vspace{0.5em}
-\noindent\textbf{Data.} The frame triplet, science log rows, fitting script,
-and figure code (\code{fig2a.pro}, IDL~9.0; \code{lightning\_model.py}) are
-archived with the monitor (\code{archive\_ref/2026-08-09/},
-\code{science.csv}).
+\noindent\textbf{Data and code.} All data required to reproduce every number
+and figure in this paper---the full-resolution 4K reference frame triplet, the
+\code{science.csv} archive, the unified Python analysis and figure script
+(\code{lightning\_model.py}), the IDL spectrum script (\code{fig2a.pro}), and
+the LaTeX source---are publicly archived at
+\url{https://github.com/simon-dedeo/lavender-flash}.
 
-\begin{thebibliography}{29}
+\begin{thebibliography}{33}
 
 \bibitem[Albers(1963)]{albers1963}
 J.~Albers, \emph{Interaction of Color} (Yale University Press, New Haven,
@@ -554,6 +720,9 @@ measurements of lightning from 375 to 880 nm,'' \emph{J.\ Atmos.\ Sci.}
 \bibitem[Pastoureau(2000)]{pastoureau2000}
 M.~Pastoureau, \emph{Bleu: Histoire d'une couleur} (Seuil, Paris, 2000).
 
+\bibitem[Pastoureau(2008)]{pastoureau2008}
+M.~Pastoureau, \emph{Noir: Histoire d'une couleur} (Seuil, Paris, 2008).
+
 \bibitem[Prueitt(1963)]{prueitt1963}
 M.~L. Prueitt, ``The excitation temperature of lightning,'' \emph{J.\
 Geophys.\ Res.} \textbf{68}, 803--811 (1963).
@@ -579,6 +748,10 @@ Res.} \textbf{67}, 1877--1884 (1962).
 U.~Schumann and H.~Huntrieser, ``The global lightning-induced nitrogen
 oxides source,'' \emph{Atmos.\ Chem.\ Phys.} \textbf{7}, 3823--3907 (2007).
 
+\bibitem[Seinfeld and Pandis(2016)]{seinfeld2016}
+J.~H. Seinfeld and S.~N. Pandis, \emph{Atmospheric Chemistry and Physics:
+From Air Pollution to Climate Change}, 3rd ed.\ (Wiley, Hoboken, 2016).
+
 \bibitem[Thomason and Krider(1982)]{thomasonkrider1982}
 L.~W. Thomason and E.~P. Krider, ``The effects of clouds on the light
 produced by lightning,'' \emph{J.\ Atmos.\ Sci.} \textbf{39}, 2051--2065
@@ -592,6 +765,16 @@ from Stark-broadening of H$\alpha$,'' \emph{J.\ Geophys.\ Res.}
 \bibitem[Uman and Orville(1965)]{uman1965}
 M.~A. Uman and R.~E. Orville, ``The opacity of lightning,'' \emph{J.\
 Geophys.\ Res.} \textbf{70}, 5491--5497 (1965).
+
+\bibitem[Walker and Christian(2017)]{walker2017}
+T.~D. Walker and H.~J. Christian, ``Triggered lightning spectroscopy: Part~1.
+A qualitative analysis,'' \emph{J.\ Geophys.\ Res.\ Atmos.} \textbf{122},
+8000--8011 (2017).
+
+\bibitem[Walker and Christian(2019)]{walker2019}
+T.~D. Walker and H.~J. Christian, ``Triggered lightning spectroscopy: 2. A
+quantitative analysis,'' \emph{J.\ Geophys.\ Res.\ Atmos.} \textbf{124},
+3930--3942 (2019).
 
 \bibitem[Wallace(1964)]{wallace1964}
 L.~Wallace, ``The spectrum of lightning,'' \emph{Astrophys.\ J.}

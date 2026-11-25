@@ -8,8 +8,9 @@ pro fig2a
   nm  = 380d + dindgen(nlam)*(720d - 380d)/(nlam-1)
   lam = nm*1d-9
 
-  hh = 6.626d-34 & cc = 2.998d8 & kb = 1.381d-23
-  planck = (2d*hh*cc^2/lam^5)/(exp(hh*cc/(lam*kb*30000d)) - 1d)
+  hh = 6.62607015d-34 & cc = 2.99792458d8 & kb = 1.380649d-23
+  ; Optically thin Kramers continuum (free-free / free-bound) at 30 000 K
+  kramers = (1d/lam^2)*exp(-hh*cc/(lam*kb*30000d))
 
   ; atomic lines: [center nm, rel energy, sigma nm]
   atom = [[399.5d,0.45d,2.5d],[444.7d,0.30d,2.5d],[463.1d,0.40d,2.5d],$
@@ -23,11 +24,12 @@ pro fig2a
   for i=0,2 do lm += mol[1,i]*exp(-0.5d*((nm-mol[0,i])/mol[2,i])^2)/mol[2,i]
 
   dl = lam[1]-lam[0]
-  co = planck/total(planck*dl)          ; unit visible energy each
+  co = kramers/total(kramers*dl)        ; unit visible energy each
   la = la/total(la*dl)
   lm = lm/total(lm*dl)
 
-  wc = 0.22d & wa = 0.66d & wm = 0.12d
+  ; v4 CIE-sRGB 5600 K exact solve (3 km Rayleigh)
+  wc = 0.574d & wa = 0.376d & wm = 0.050d
   spec = wc*co + wa*la + wm*lm
   pk = max(spec)
   spec /= pk & cop = wc*co/pk & lmp = wm*lm/pk
@@ -77,7 +79,7 @@ pro fig2a
 
   ; legend (upper right, inside frame; bottom row anchored at data y = 10.5)
   x0=0.66
-  leg = ['total model spectrum', '30 000 K Planck continuum', $
+  leg = ['total model spectrum', '30 000 K Kramers continuum', $
          'N!D2!U+!N 1N bands']
   lco = [5,1,5] & lls = [0,2,1] & lth = [4,2,3]
   yw = !y.window
